@@ -1,0 +1,200 @@
+<HTML>
+<HEAD>
+<script>
+var can,ctx;
+var rad = Math.PI/180; // 1
+var step = 3;
+
+var [rx,ry] = [250,250];
+var aa = 1.5;
+var [a,b,h] = [aa*140,aa*60,aa*48];
+var ri = 0;
+var timer;
+
+function gcd(i1,i2){
+  if(i1<i2){return gcd(i2,i1);}
+  if(i2 == 0){return i1;}
+  return gcd(i2, i1 % i2);
+}
+
+function initCanvas(){
+console.log("initCanvas");
+  can = document.getElementById("spg");
+  ctx = can.getContext("2d");
+  spiro();
+}
+
+var x = [];
+var y = [];
+var p = [];
+var q = [];
+var r = [];
+
+var arr = [];
+
+function setini(ii){
+  r[ii] = (360*7*3)*(ii/12);
+  var angle = (r[ii]) * rad;
+  p[ii] = rx + (a-b)*Math.cos(angle);
+  q[ii] = ry + (a-b)*Math.sin(angle);
+  x[ii] = p[ii] + h*Math.cos(((a-b)/b)*angle);
+  y[ii] = q[ii] - h*Math.sin(((a-b)/b)*angle);
+}
+
+function spiro(){
+console.log("spiro");
+
+  for(let i=0;i<12;i++)
+  {
+    setini(i);
+  }
+  timer = setInterval(drawMain,50);
+}
+
+function decide(dt){
+  if(ri%360 > 300){return 0;}
+  let k = Math.floor(ri/360);
+  return (k % 7); // 0-6
+}
+
+function drawMain(){
+  let alph = 1; // 0.2
+  ctx.fillStyle = "rgba(255, 255, 255, "+alph+")";
+  ctx.fillRect(0,0,500,500);
+
+  for(let i=0;i<12;i++)
+  {
+    draw(i);
+  }
+
+  //＝＝＝ 補助線 ＝＝＝
+  let dt = decide(ri);
+
+  if(dt == 3 || dt == 4 || dt == 6)
+  {
+    ddd(); // 七芒星
+  }
+  if(dt == 1 || dt == 4 || dt == 6){
+  for(let i=0;i<4;i++){
+    //ttt(i); // 三角形
+  }}
+  if(dt == 2 || dt == 4 || dt == 6){
+  for(let i=0;i<3;i++){
+    //sss(i); // 四角形
+  }}
+  //if(dt==0||dt == 5 || dt == 6)
+  {
+	  // 大円
+	  ccc(250, 250, a-7); // 円・黒線
+	  // 小円
+	  //for(let i=0;i<4;i++)
+	  {
+	  i=0;
+	    ccc(p[i],q[i], h+9); // 円・黒線
+	  }
+	  // 中円
+	  //for(let i=0;i<3;i++)
+	  {
+	  i=0;
+	    let [mx,my] = [(x[i]+x[i+6])/2,(y[i]+y[i+6])/2]
+	    let r = Math.sqrt((x[i]-mx)*(x[i]-mx)+(y[i]-my)*(y[i]-my));
+	    ccc(mx, my, r+9); // 円・黒線
+	  }
+  }
+  ri = ri+step;
+
+  arr.splice(300); // 80%
+  arrdraw();
+}
+
+function arrdraw(){
+  if(arr.length == 0){return;}
+  ctx.beginPath();
+  ctx.strokeStyle = "rgba(0,255,255,0.8)";
+  ctx.moveTo(arr[0][0],arr[0][1]);
+  for(cc of arr){
+    ctx.lineTo(cc[0],cc[1]);
+  }
+  ctx.stroke();
+}
+
+function draw(ii){
+//console.log("draw");
+  var angle = (ri + r[ii]) * rad;
+  var pp = rx + (a-b)*Math.cos(angle);
+  var qq = ry + (a-b)*Math.sin(angle);
+  var xx = pp + h*Math.cos(((a-b)/b)*angle);
+  var yy = qq - h*Math.sin(((a-b)/b)*angle);
+
+  if(ii==0){
+  ctx.beginPath();
+  ctx.fillStyle = "rgb(255,0,255)";
+  ctx.arc(xx, yy, 10, 0, Math.PI*2, false);
+  ctx.fill();
+  }else{
+  ctx.beginPath();
+  ctx.strokeStyle = "rgba(255,0,255,0.2)";
+  ctx.arc(xx, yy, 10, 0, Math.PI*2, false);
+  ctx.stroke();
+  }
+
+  x[ii] = xx;
+  y[ii] = yy;
+  p[ii] = pp;
+  q[ii] = qq;
+  if(ii==0){
+    arr.unshift([xx,yy]);
+  }
+}
+
+function sss(ii){
+  ctx.beginPath();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(0,0,255,0.2)";
+  ctx.moveTo(x[ii],y[ii]);
+  for(let i=1;i<=4;i++){
+    let id = (ii+i*3)%12;
+    ctx.lineTo(x[id],y[id]);
+  }
+  ctx.stroke();
+}
+
+function ttt(ii){
+  ctx.beginPath();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,0,0,0.2)";
+  ctx.moveTo(x[ii],y[ii]);
+  for(let i=1;i<=3;i++){
+    let id = (ii+i*4)%12;
+    ctx.lineTo(x[id],y[id]);
+  }
+  ctx.stroke();
+}
+
+function ccc(x,y,r){
+	ctx.beginPath();
+	ctx.lineWidth = 2;
+	ctx.strokeStyle = "rgba(0,0,0,0.2)";
+	ctx.arc(x,y,r, 0, Math.PI*2, false);
+	ctx.stroke();
+}
+
+function ddd(){
+  let rr = a-7;
+  ctx.beginPath();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(0,255,0,0.2)";
+  ctx.moveTo(250+rr,250);
+  for(let i=1;i<=7;i++){
+    let arg = i*rad*(360/7*3);
+    ctx.lineTo(250+rr*Math.cos(arg),250+rr*Math.sin(arg));
+  }
+  ctx.stroke();
+}
+
+</script>
+</HEAD>
+<BODY bgcolor="#000000" onload="initCanvas()">
+<canvas id="spg" width=500 height=500 style="background-color: gray"></canvas>
+</BODY>
+</HTML>
