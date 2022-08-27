@@ -65,26 +65,26 @@ function drawMain(){
     draw(i);
   }
 
-  //補助線
+  //＝＝＝ 補助線 ＝＝＝
   let dt = decide(ri);
   if(dt >= 5){
-    ccc(250, 250, a-7); // 黒線
+    ccc(250, 250, a-7); // 円・黒線
   }
   if(dt == 3 || dt == 4 || dt == 6)
   {
-    ddd();
+    ddd(); // 七芒星
   }
   if(dt == 1 || dt == 4 || dt == 6){
   for(let i=0;i<4;i++){
-    ttt(i);
+    ttt(i); // 三角形
   }}
   if(dt == 2 || dt == 4 || dt == 6){
   for(let i=0;i<3;i++){
-    sss(i);
+    sss(i); // 四角形
   }}
   if(dt == 5 || dt == 6){
   for(let i=0;i<4;i++){
-    ccc(p[i],q[i], h+9); // 黒線
+    ccc(p[i],q[i], h+9); // 円・黒線
   }}
   ri = ri+step;
 }
@@ -93,34 +93,13 @@ function draw(ii){
   var angle = (ri + r[ii]) * rad;
   var pp = rx + (a-b)*Math.cos(angle);
   var qq = ry + (a-b)*Math.sin(angle);
-  var xx = rx + (a-b)*Math.cos(angle) + h*Math.cos(((a-b)/b)*angle);
-  var yy = ry + (a-b)*Math.sin(angle) - h*Math.sin(((a-b)/b)*angle);
+  var xx = pp + h*Math.cos(((a-b)/b)*angle);
+  var yy = qq - h*Math.sin(((a-b)/b)*angle);
 
-  if(1){
-	  ctx.beginPath();
-	  ctx.fillStyle = "rgb(255,0,255)";
-	  ctx.arc(xx, yy, 10, 0, Math.PI*2, false);
-	  ctx.fill();
-  }else{
-  ctx.lineWidth = 10;
   ctx.beginPath();
-  ctx.strokeStyle = "rgb(255,0,255)";
-  ctx.moveTo(x[ii],y[ii]);
-  ctx.lineTo(xx,yy);
-  ctx.stroke();
-  }
-
-  if(1){
-    //if(5 <= decide(ri)){
-    //ccc(pp,qq, h+9);
-    //}
-  }else{
-  ctx.beginPath();
-  ctx.strokeStyle = "rgb(0,0,255)";
-  ctx.moveTo(p[ii],q[ii]);
-  ctx.lineTo(pp,qq);
-  ctx.stroke();
-  }
+  ctx.fillStyle = "rgb(255,0,255)";
+  ctx.arc(xx, yy, 10, 0, Math.PI*2, false);
+  ctx.fill();
 
   x[ii] = xx;
   y[ii] = yy;
