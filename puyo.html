@@ -1,0 +1,94 @@
+<HTML>
+<HEAD>
+<script>
+var timer;
+var can;
+var ctx; // 描画のためのグローバル変数
+
+var gIntval = 50; // 50ミリ秒で描画更新する
+
+var gtime = 0; // 時間情報
+
+var gMathLen = 40; // マスの大きさ
+
+//縦12マス×横6マス
+var array;
+function arrayInit(){
+  array = new Array(12);
+  arrayReset();
+}
+function arrayReset(){
+  for(let i=0;i<12;i++){
+    array[i] = [0,0,0,0,0,0];
+  }
+}
+
+var colorptn = ["","#FF0000","#00FF00"];
+function drawMath(v,x,y){
+  if(v <= 0 || colorptn.length <= v){return;}
+  ctx.fillStyle = colorptn[v];
+  ctx.fillRect(x,y,gMathLen,gMathLen);
+}
+
+function drawBack(x,y,w,h){
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(x,y,w,h);
+}
+
+
+function runProgram(){
+console.log("runProgram");
+  can = document.getElementById("drawcanvas");
+  ctx = can.getContext("2d");
+  // 初期化
+  arrayInit();
+  // ループ
+  doLoop();
+}
+
+function doLoop(){
+  timer = setInterval(mainLoop, gIntval);
+}
+
+function mainLoop(){
+  // マスをコントロールがんばってする（外部入力考慮したり）
+  moveControl();
+  // 描画処理はこっちでする
+  drawMain();
+}
+
+function moveControl(){
+  let tt = gtime%500; //500で一周
+  if(tt == 0){
+    arrayReset();
+  }
+  if(tt%50 == 0){
+    let v = 1+(tt/50)%10;
+    array[v][1] = (v%2)? 1:2;
+  }
+  //時間
+  gtime++;
+}
+
+function drawMain(){
+  let [sx,sy] = [110,10]; // 書き出し位置
+
+  // 白背景
+  drawBack(sx,sy, gMathLen*6,gMathLen*12);
+
+  // オブジェクトの色
+  for(let i=0;i<12;i++){
+  for(let j=0;j<6;j++){
+    let v = array[i][j];
+    let x = sx+gMathLen*j;
+    let y = sy+gMathLen*i;
+    drawMath(v,x,y);
+  }}
+}
+
+</script>
+</HEAD>
+<BODY bgcolor="#000000" onload="runProgram()">
+<canvas id="drawcanvas" width=500 height=500 style="background-color: gray"></canvas>
+</BODY>
+</HTML>
