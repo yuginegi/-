@@ -1,0 +1,79 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // 無限ループする
+  infiniteloop(ctx);
+}
+function infiniteloop(ctx){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx);
+}
+var tt = 0;
+function mainloop(ctx){
+  //時間経過
+  tt++;
+  // 背景
+  ctx.fillStyle = "rgba(" + [200, 200, 255, 1] + ")";
+  ctx.fillRect(0,0,gXXX,gYYY);
+  // 前景
+  ctx.fillStyle = "rgba(" + [0,0,0, 1] + ")";
+  let n = Math.floor(tt/30); // 30フレームで１つ数字を変える
+  digitaldigit(ctx,n%10); // 一桁のみ
+}
+function digitaldigit(ctx,n){
+  let d = [
+    [1,1, 1,0,1, 1,1],
+    [0,0, 0,0,0, 1,1],
+    [0,1, 1,1,1, 1,0],
+    [0,0, 1,1,1, 1,1],
+    [1,0, 0,1,0, 1,1], // 4
+    [1,0, 1,1,1, 0,1],
+    [1,1, 1,1,1, 0,1], // 6
+    [1,0, 1,0,0, 1,1],
+    [1,1, 1,1,1, 1,1], // 8
+    [1,0, 1,1,1, 1,1], // 9
+  ];
+  if(0 <= n && n < d.length){
+    let v = d[n];
+    for(let i=0;i<v.length;i++){
+      if(v[i]!=0){
+        let [x,y,w,h] = drawpar(i);
+        ctx.fillRect(x,y,w,h);
+      }
+    }
+  }
+}
+function drawpar(i){
+  let ll = 140;
+  let sl = 10;
+  let ss = 15;
+  let px = [120,280];
+  let py = [40,200,360];
+  let pp = [
+    [px[0],py[0]+ss,sl,ll], // |
+    [px[0],py[1]+ss,sl,ll], // |
+    [px[0]+ss,py[0],ll,sl], // -
+    [px[0]+ss,py[1],ll,sl], // -
+    [px[0]+ss,py[2],ll,sl], // -
+    [px[1],py[0]+ss,sl,ll], // |
+    [px[1],py[1]+ss,sl,ll], // |
+  ];
+  return pp[i];
+}
+
+</script>
+</body>
+</html>
