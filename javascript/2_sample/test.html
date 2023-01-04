@@ -1,0 +1,52 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // ★絶対必要★ 画像ファイルを読み込む！！
+  chardrawInit();
+  // 無限ループする
+  infiniteloop(ctx);
+}
+function infiniteloop(ctx){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx);
+}
+var tt = 0;
+function mainloop(ctx){
+  //時間経過
+  tt++;
+  // 背景
+  ctx.fillStyle = "rgba(" + [200, 200, 255, 1] + ")";
+  ctx.fillRect(0,0,gXXX,gYYY);
+  // 前景
+  ctx.fillStyle = "rgba(" + [0,0,0, 1] + ")";
+  let n = Math.floor(tt/3); // 3フレームで１つ数字を変える
+  chardraw(ctx, n%4); // ４つで１セット
+}
+var gImg = []; // グローバル
+function chardrawInit(){
+  for(let i=0;i<3;i++){
+    gImg[i] = new Image();
+    gImg[i].src = "pp"+(i+1)+".png";
+  }
+}
+function chardraw(ctx,n){
+  if(n==3){n=1;}
+  ctx.drawImage(gImg[n],100,100);
+}
+
+</script>
+</body>
+</html>
