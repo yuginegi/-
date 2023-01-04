@@ -1,0 +1,48 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // ------------------------------------------------------------
+  // Gemapad API に対応しているか調べる
+  // ------------------------------------------------------------
+  if(!(window.Gamepad)) return;
+  if(!(navigator.getGamepads)) return;
+  // コントローラ
+  let con = new contrclass(null)
+
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+
+  infiniteloop(ctx, con);
+}
+function infiniteloop(ctx, con){
+  // ループ 
+  setInterval(mainloop, 1000/30, ctx, con);
+}
+var tt = 0;
+var [ox,oy] = [gXXX/2,gYYY/2];
+function mainloop(ctx,con){
+  //DBG//console.log("main");
+  let [p,m] = con.getPushedKey(); // コントローラ
+  // 背景
+  ctx.fillStyle = "rgba(" + [200, 200, 255, 1] + ")";
+  ctx.fillRect(0,0,gXXX,gYYY);
+  // 前景
+  let [x,y,sp] = [m[0],m[1],5];
+  [ox,oy] = [ox+sp*x,oy+sp*y];
+  ctx.fillStyle = "rgba(" + [0, 0, 0, 1] + ")";
+  ctx.fillRect(ox,oy,20,20);
+}
+</script>
+</body>
+</html>
