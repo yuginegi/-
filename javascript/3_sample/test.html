@@ -35,16 +35,16 @@ function mainloop(ctx){
   let n = Math.floor(tt/5); // 5フレームで１つ絵を変える
   chardraw(ctx, n%4); // ４つで１セット
 }
-var gImg = []; // グローバル
+var gImg = ""; // グローバル
 function chardrawInit(){
-  for(let i=0;i<3;i++){
-    gImg[i] = new Image();
-    gImg[i].src = "pp"+(i+1)+".png";
-  }
+  gImg = new Image();
+  gImg.src = "pict.png";
 }
 function chardraw(ctx,n){
   if(n==3){n=1;}
-  ctx.drawImage(gImg[n],100,100);
+  ctx.drawImage(gImg,
+  200*n,0,200,200, /* 元の絵 の どこを参照する */
+  100,100,200,200); /* Canvasのどこに描くか */
 }
 
 </script>
