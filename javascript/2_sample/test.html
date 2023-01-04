@@ -32,7 +32,7 @@ function mainloop(ctx){
   ctx.fillRect(0,0,gXXX,gYYY);
   // 前景
   ctx.fillStyle = "rgba(" + [0,0,0, 1] + ")";
-  let n = Math.floor(tt/3); // 3フレームで１つ数字を変える
+  let n = Math.floor(tt/5); // 5フレームで１つ絵を変える
   chardraw(ctx, n%4); // ４つで１セット
 }
 var gImg = []; // グローバル
