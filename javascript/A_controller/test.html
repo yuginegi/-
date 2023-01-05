@@ -35,12 +35,12 @@ function mainloop(ctx,con){
   //DBG//console.log("main");
   let [p,m] = con.getPushedKey(); // コントローラ
   // 背景
-  ctx.fillStyle = "rgba(" + [200, 200, 255, 1] + ")";
+  ctx.fillStyle = "#CCCCFF"; // 青っぽい
   ctx.fillRect(0,0,gXXX,gYYY);
   // 前景
   let [x,y,sp] = [m[0],m[1],5];
   [ox,oy] = [ox+sp*x,oy+sp*y];
-  ctx.fillStyle = "rgba(" + [0, 0, 0, 1] + ")";
+  ctx.fillStyle = "#000000"; // 黒
   ctx.fillRect(ox,oy,20,20);
 }
 </script>

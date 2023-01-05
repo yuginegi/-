@@ -26,10 +26,10 @@ function mainloop(ctx){
   //時間経過
   tt++;
   // 背景
-  ctx.fillStyle = "rgba(" + [200, 200, 255, 1] + ")";
+  ctx.fillStyle = "#CCCCFF"; // 青っぽい
   ctx.fillRect(0,0,gXXX,gYYY);
   // 前景
-  ctx.fillStyle = "rgba(" + [0,0,0, 1] + ")";
+  ctx.fillStyle = "#000000"; // 黒
   let n = Math.floor(tt/30); // 30フレームで１つ数字を変える
   digitaldigit(ctx,n%10); // 一桁のみ
 }

@@ -38,10 +38,9 @@ function mainloop(ctx){
   //時間経過
   tt++;
   // 背景
-  ctx.fillStyle = "rgba(" + [200, 200, 255, 1] + ")";
+  ctx.fillStyle = "#CCCCFF"; // 青っぽい
   ctx.fillRect(0,0,gXXX,gYYY);
   // 前景
-  ctx.fillStyle = "rgba(" + [0,0,0, 1] + ")";
   let n = Math.floor(tt/5); // 5フレームで１つ絵を変える
   chardraw(ctx, n%12); // １２で１セット
 }
