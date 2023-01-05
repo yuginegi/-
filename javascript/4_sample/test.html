@@ -1,0 +1,75 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // ★絶対必要★ 画像ファイルを読み込む！！
+  drawInit();
+  // 無限ループする
+  infiniteloop(ctx);
+}
+function infiniteloop(ctx){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx);
+}
+var tt = 0;
+function mainloop(ctx){
+  //時間経過
+  tt++;
+  // 背景
+  backdraw(ctx,tt%800);
+  // 前景
+  let n = Math.floor(tt/5); // 5フレームで１つ絵を変える
+  chardraw(ctx, n%4); // ４つで１セット
+}
+
+// 画像の読み込み
+var gImg = ""; // グローバル
+var gBackImg = ""; // グローバル
+function drawInit(){
+  gImg = new Image();
+  gImg.src = "pict.png";
+  gBackImg = new Image();
+  gBackImg.src = "back.png";
+}
+// 背景
+function backdraw(ctx,n){
+  if(0<=n && n<400){  // 一枚で足りる
+    ctx.drawImage(gBackImg,
+    0+n,0,400,400, /* 元の絵 の どこを参照する */
+    0,0,400,400); /* Canvasのどこに描くか */
+  }else{  // 一枚で足りない
+    // 画像の残りを m にする
+    let m = 800-n;
+    // 左側に描く。画像の右のほう
+    ctx.drawImage(gBackImg,
+    0+n,0,m,400, /* 絵の残り */
+    0,0,m,400); /* 左に m 描く */
+    // 右側に描く。画像の左のほう
+    ctx.drawImage(gBackImg,
+    0,0,400-m,400, /* 左端から */
+    m,0,400-m,400); /* m から 右に描く */
+  }
+}
+// 前景
+function chardraw(ctx,n){
+  if(n==3){n=1;}
+  ctx.drawImage(gImg,
+  200*n,0,200,200, /* 元の絵 の どこを参照する */
+  100,100,200,200); /* Canvasのどこに描くか */
+}
+
+</script>
+</body>
+</html>
