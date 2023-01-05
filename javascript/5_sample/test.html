@@ -1,0 +1,104 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // ★絶対必要★ 画像ファイルを読み込む！！
+  drawInit();
+  // コントローラを使う（ちょっとクセ強クラス実装でごめんなさい）
+  let con = new contrclass(null);
+  // 無限ループする
+  infiniteloop(ctx,con);
+}
+function infiniteloop(ctx,con){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx,con);
+}
+
+var dd = 0; // 距離 
+var tt = 0; // 時間 
+function mainloop(ctx,con){
+  // 時間経過
+  tt++;
+  // コントローラからキーもらう(pはボタン(0-3に限定)、mは方向キー)
+  let [p,m] = con.getPushedKey();
+  let sp = 3;
+  dd = dd + sp*m[0]; // 横方向押されたら、背景がsp分進む
+  // 背景
+  backdraw(ctx,dd%800);
+  // 前景
+  let n = Math.floor(dd/(5*sp)); // ５歩移動で１つ絵を変える
+  chardraw(ctx, p, n%4); // ４つで１セット
+}
+
+// 画像の読み込み
+var gImg = ""; // グローバル
+var gBackImg = ""; // グローバル
+function drawInit(){
+  gImg = new Image();
+  gImg.src = "pict.png";
+  gBackImg = new Image();
+  gBackImg.src = "back.png";
+}
+// 背景
+function backdraw(ctx,n){
+  if(0<=n && n<400){  // 一枚で足りる
+    ctx.drawImage(gBackImg,
+    0+n,0,400,400, /* 元の絵 の どこを参照する */
+    0,0,400,400); /* Canvasのどこに描くか */
+  }else{  // 一枚で足りない
+    // 画像の残りを m にする
+    let m = 800-n;
+    // 左側に描く。画像の右のほう
+    ctx.drawImage(gBackImg,
+    0+n,0,m,400, /* 絵の残り */
+    0,0,m,400); /* 左に m 描く */
+    // 右側に描く。画像の左のほう
+    ctx.drawImage(gBackImg,
+    0,0,400-m,400, /* 左端から */
+    m,0,400-m,400); /* m から 右に描く */
+  }
+}
+// 前景
+var tamainterval = 0; //弾の寿命であり、撃つ時間間隔でもある
+function chardraw(ctx,p,n){
+  let psz = 200; // 画像のサイズが200x200
+  let dsz = 100; // 描画するサイズ
+  let ix = (n==3)? 1:n;
+  let iy = (p!=-1)? 1:0;
+  ctx.drawImage(gImg,
+  psz*ix,psz*iy,psz,psz, /* 元の絵 の どこを参照する */
+  50,300-dsz,dsz,dsz); /* Canvasのどこに描くか */
+
+  if(tamainterval > 0){ // 弾が出ているからちょっと待って
+    tamainterval--;
+    let [x,y] = [50+dsz+300*(30-tamainterval)/30, 300-0.4*dsz];
+    tamadraw(ctx,x,y);
+  }else if(p!=-1){ // 弾を撃つ
+    tamainterval = 30;
+  }
+}
+
+// 弾。本当はClassで実装すべきだけど、今はこれで。１発のみ描画
+function tamadraw(ctx,x,y){
+  ctx.fillStyle = "#FF0000"
+  ctx.beginPath();
+  ctx.arc(x,y, 5, 0, Math.PI*2, false);
+  ctx.fill();
+}
+
+</script>
+</body>
+</html>
