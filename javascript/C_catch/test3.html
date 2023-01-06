@@ -1,0 +1,200 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // ★絶対必要★ 画像ファイルを読み込む！！
+  drawInit();
+  // コントローラを使う（ちょっとクセ強クラス実装でごめんなさい）
+  let con = new contrclass(null);
+  // 無限ループする
+  infiniteloop(ctx,con);
+}
+function infiniteloop(ctx,con){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx,con);
+}
+
+var tt = 0; // 時間 
+var fruitsList = [];
+var catchList = [];
+var gscore = 0;
+function mainloop(ctx,con){
+  // 時間経過
+  tt++;
+  // 前景の計算
+  charmove(con);
+  // 背景 ◇ 今回は固定にします
+  backdraw(ctx,0);
+
+  // 果実
+  // １秒に一回落とす
+  if(tt%(1*30)==0){
+    let ff = new fruitsClass(); // クラスを生成して
+    fruitsList.push(ff); // Listに積む
+  }
+
+  for(let cc of fruitsList){
+    cc.move();
+    cc.draw(ctx);
+    cc.hit(ox,oy,dsz);  // 当たり判定
+  }
+  delValArry(fruitsList);
+
+  // 前景の描画
+  let n = Math.floor(tt/(5)); // 5フレームで１つ絵を変える
+  chardraw(ctx, n%4); // ４つで１セット
+  // 演出
+  for(let cc of catchList){
+    cc.draw(ctx);
+  }
+  delValArry(catchList);
+  // 点数表示
+  {
+    ctx.font = "32px 'ＭＳ ゴシック'";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("SCORE:"+gscore,10,10);
+  }
+}
+
+// 配列削除処理：Invalid is time <= 0; 
+function delValArry(arr){
+  for(var i=arr.length-1;i>=0;i--){
+    if(arr[i].time <= 0){
+      arr.splice(i, 1);
+    }
+  }
+}
+
+class fruitsClass{
+  constructor(){
+    // See https://www.sejuku.net/blog/22432
+    // 50~350：最小値「50」と最大値から最小値を引いた「300」を使う
+    var random = Math.floor( Math.random() * 300 ) + 50;
+    this.fpos = [random,0];
+    this.time = 3*30; // 寿命を3秒
+  }
+
+  move(){
+    if(this.time > 0){
+      let sp = 4; // 落下速度
+      this.fpos[1] += sp; // 落下
+      this.time--; // 寿命を減らす
+    }
+  }
+  draw(ctx){
+    if(this.time > 0){
+      let [fx,fy] = this.fpos;
+      let sz = 20; // 果実の半径
+      ctx.fillStyle = "#FF0000"
+      ctx.beginPath();
+      ctx.arc(fx,fy, sz, 0, Math.PI*2, false);
+      ctx.fill();
+    }
+  }
+  hit(ox,oy,oz){
+    // early return 
+    if(this.time <= 0){return;}
+    let [fx,fy] = this.fpos;
+    // 自キャラの描画の四角形の中に、果実の中心点があれば取得
+    if((ox < fx && fx < ox+oz)
+    && (oy < fy && fy < oy+oz)){
+      // キャッチ出す
+      let cc = new catchClass(this.fpos);
+      catchList.push(cc); // Listに積む
+      // 果実は寿命が尽きる
+      this.time = 0; // 寿命
+      console.log("Catch");
+      gscore += 100; // 100点差し上げる
+    }
+  }
+}
+
+class catchClass{
+  constructor(arg){
+    this.time = 30; // 寿命 1秒
+    this.pos = arg;
+  }
+  draw(ctx){
+    if(this.time > 0){
+      let [cx,cy] = this.pos;
+      ctx.font = "32px 'ＭＳ ゴシック'";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText("CATCH",cx,cy);
+      this.pos[1] += (-1);
+      this.time--;
+    }
+  }
+}
+
+// 画像の読み込み
+var gImg = ""; // グローバル
+var gBackImg = ""; // グローバル
+function drawInit(){
+  gImg = new Image();
+  gImg.src = "pict.png";
+  gBackImg = new Image();
+  gBackImg.src = "back.png";
+}
+// 背景
+function backdraw(ctx,n){
+  ctx.drawImage(gBackImg,
+  0+n,0,400,400, /* 元の絵 の どこを参照する */
+  0,0,400,400); /* Canvasのどこに描くか */
+}
+// 前景の位置
+var dsz = 100; // 描画するサイズ
+var groundY = 350-dsz;
+var [ox,oy] = [50,groundY]; // グローバル ＆ 初期値
+var jumpsts = 0; // 0:ジャンプしてない、＋：ジャンプしている
+var my = 0; // Y方向への影響
+function charmove(con){
+  // コントローラからキーもらう(pはボタン(0-3に限定)、mは方向キー)
+  let [p,m] = con.getPushedKey();
+  //ジャンプ処理
+  if(jumpsts > 0){ // ジャンプしているならちょっと待って
+    my += 3;//重力
+    
+  }else if(p!=-1){ // ジャンプする
+    jumpsts = 1; // とりあえず０じゃない
+    my = -30; // とりあえずジャンプ力
+  }
+  // 移動
+  let sp=3; // 横移動のスピード
+  ox = ox + sp*m[0];
+  oy = oy + my;
+  // 地面の下に行かない
+  if(oy > groundY){
+    oy=groundY; // 地上の高さにする
+    jumpsts = 0; // 飛んでないことにする
+    my = 0; // 念のため０にする
+  }
+}
+
+// 前景
+function chardraw(ctx,n){
+  let psz = 200; // 画像のサイズが200x200
+  let ix = (n==3)? 1:n;
+  let iy = 0;
+  ctx.drawImage(gImg,
+  psz*ix,psz*iy,psz,psz, /* 元の絵 の どこを参照する */
+  ox,oy,dsz,dsz); /* Canvasのどこに描くか */
+}
+
+</script>
+</body>
+</html>
