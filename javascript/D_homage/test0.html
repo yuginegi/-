@@ -1,0 +1,175 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // ★絶対必要★ 画像ファイルを読み込む！！
+  drawInit();
+  mapinit();
+  // コントローラを使う（ちょっとクセ強クラス実装でごめんなさい）
+  let con = new contrclass(null);
+  // 無限ループする
+  infiniteloop(ctx,con);
+}
+function infiniteloop(ctx,con){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx,con);
+}
+
+var tt = 0; // 時間 
+function mainloop(ctx,con){
+  // 時間経過
+  tt++;
+  // 前景の計算
+  charmove(con);
+  // 背景 ◇ 今回は固定にします
+  backdraw(ctx,0);
+  // 前景の描画
+  let n = Math.floor(tt/(5)); // 5フレームで１つ絵を変える
+  chardraw(ctx, n%4); // ４つで１セット
+}
+
+// 画像の読み込み
+var gImg = ""; // グローバル
+var gBackImg = ""; // グローバル
+function drawInit(){
+  gImg = new Image();
+  gImg.src = "pict.png";
+  gBackImg = new Image();
+  gBackImg.src = "back.png";
+}
+// 背景
+function backdraw(ctx,n){
+  ctx.drawImage(gBackImg,
+  0+n,0,400,400, /* 元の絵 の どこを参照する */
+  0,0,400,400); /* Canvasのどこに描くか */
+  mapdraw(ctx);
+}
+// マスのサイズは20×20にします。
+var map=[]; // 2次元。Y方向、X方向
+var msz = 20; // サイズ
+function mapinit(){
+  for(let j=0;j<gYYY/msz;j++){
+    map[j] = new Array(gXXX/msz).fill(0);
+  }
+  // 地面（y=300）
+  let y = 300/msz;
+  for(let i=0;i < gXXX/msz;i++){
+    map[y][i] = 1;
+  }
+  // 乗る床
+  yokoyukaset(3,5,10);
+  yokoyukaset(6,5,10);
+  yokoyukaset(9,10,15);
+  yokoyukaset(12,5,10);
+}
+function yokoyukaset(yy,s,e){
+  for(let i=s;i<e;i++){
+    map[yy][i] = 1;
+  }
+}
+
+function mapdraw(ctx){
+  ctx.fillStyle = "#FF0000"; // 赤
+  ctx.strokeStyle = "#000000"; // 黒
+  // 2次元 ループ・・・
+  for(let j=0;j<gYYY/msz;j++){
+    for(let i=0;i<gXXX/msz;i++){
+      if(map[j][i] != 0){
+        ctx.fillRect(msz*i,msz*j,msz,msz);
+        ctx.strokeRect(msz*i,msz*j,msz,msz);
+      }
+    }
+  }
+}
+
+// ＜床が無ければ落ちる、床があれば留まる処理＞
+// ！！ 入力がキャラの左上の点であることに注意
+// 重力とかジャンプ系をこちらに持ってきた
+function mapdown(xx,yy,ly){
+  // 上昇時は落下の危険性なし。「early return」
+  if(yy < 0 || ly < 0){
+    //DBG//console.log("md1");
+    //jumpsts = 1; // （上昇しているので）ジャンプはできない
+    my += ggg; // 重力
+    my = (-jjj < my) ? -jjj : my;
+    return yy+ly;
+  }
+  // ０のとき、落下の危険性があるかを判定
+  let csz = dsz; // キャラのサイズ
+  let x = Math.floor((xx+(csz/2))/msz); // 中心の点をX
+  let s = Math.floor((yy+csz)/msz); // 足元のY座標：キャラの上部からサイズを足す
+  let e = Math.floor((yy+csz+ly)/msz); // 落下予定のY座標：さらに落下距離足す
+  // 床があるかどうか
+  for(let i=s;i<=e;i++){
+    if(map[i][x]!=0){
+      if(jumpsts==1){jumpsts = 0;} // 飛んでないことにする
+      my = 0; // 念のため０にする
+      //DBG//console.log("md2");
+      return i*msz-csz; // 床から計算したキャラの上の座標を渡す
+    }
+  }
+  jumpsts = 1; // （落下しているので）ジャンプはできない
+  my += ggg; // 重力
+  //DBG//console.log("md3");
+  return yy+ly;
+}
+
+// 前景の位置
+var dsz = 50; // 描画するサイズ
+var [jjj,ggg] = [-15,+1];//[-25,+5]; // ジャンプ力、重力
+var [ox,oy] = [50,50]; // グローバル ＆ 初期値
+var jumpsts = 0; // 0:ジャンプしてない、＋：ジャンプしている
+var my = 0; // Y方向への影響
+var jtime = 0;
+function charmove(con){
+  // コントローラからキーもらう(pはボタン(0-3に限定)、mは方向キー)
+  let [p,m] = con.getPushedKey();
+  //ジャンプ処理
+  if(jumpsts==0 && p==0){ // ジャンプする
+    console.log("Jump: 0 -> 2");
+    jumpsts = 2; // 2に定義しておく
+    my = jjj; // とりあえずジャンプ力
+  }
+  if(jumpsts==2){
+    console.log("Jumping");
+    if(p!=0){ // ボタンを離したら、上昇をやめる
+      jumpsts = 1;
+      if(my < 0){my = 0;}
+    }
+  }
+  // 移動
+  let sp=3; // 横移動のスピード
+  ox = ox + sp*m[0];
+  oy = mapdown(ox,oy,my); // この関数に任せる
+}
+
+// 前景
+function chardraw(ctx,n){
+  let psz = 200; // 画像のサイズが200x200
+  let ix = (n==3)? 1:n;
+  let iy = (jumpsts!=0)?2:0;
+  ctx.drawImage(gImg,
+  psz*ix,psz*iy,psz,psz, /* 元の絵 の どこを参照する */
+  ox,oy,dsz,dsz); /* Canvasのどこに描くか */
+  //DEBUG
+  let mm = 5;
+  ctx.fillStyle = "#00FF00"; // 緑
+  ctx.fillRect(ox+(dsz/2)-mm,oy+dsz-mm,2*mm,2*mm);
+}
+
+</script>
+</body>
+</html>
