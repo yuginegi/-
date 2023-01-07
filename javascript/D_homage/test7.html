@@ -74,32 +74,48 @@ function mainloop(ctx,con,yd){
  * *************************************************/
 // 前景の位置
 var dsz = 50; // 描画するサイズ
-var [jjj,ggg] = [-15,+1];//[-25,+5]; // ジャンプ力、重力
+// 上昇時重力無ければ、15,1.5 当たりがいい感じな・・
+var [jjj,ggg] = [-18,+1.5];//[-25,+5]; // ジャンプ力、重力
 var [ox,oy] = [50,50]; // グローバル ＆ 初期値
 var jumpsts = 0; // 0:ジャンプしてない、＋：ジャンプしている
 var my = 0; // Y方向への影響
+var mx = 0; // x方向への影響
 var jtime = 0;
+var jwait = 0;
+var jwaitbase = 5;
 var dmgwait = 0;
-var charHP = 5; 
+var charHP = 5;
+var charSP = 6;
 function charmove(con){
   // コントローラからキーもらう(pはボタン(0-3に限定)、mは方向キー)
   let [p,m] = con.getPushedKey();
+  if(jumpsts==0 && jwait > 0){jwait--;}
   //ジャンプ処理
-  if(jumpsts==0 && p==0){ // ジャンプする
+  else if(jumpsts==0 && p==0){ // ジャンプする
     //console.log("Jump: 0 -> 2");
     jumpsts = 2; // 2に定義しておく
-    my = jjj; // とりあえずジャンプ力
+    my = jjj;//-Math.abs(1*m[0]); // とりあえずジャンプ力
+    jwait = jwaitbase; // 連続ジャンプは待って
   }
   if(jumpsts==2){
     //console.log("Jumping");
-    if(p!=0){ // ボタンを離したら、上昇をやめる
+    if(p!=0 || jtime > 6){ // ボタンを離したら、上昇をやめる
       jumpsts = 1;
       if(my < 0){my = 0;}
+      jtime = 0
+    }else{
+      jtime++;
     }
   }
   // 移動
-  let sp=3; // 横移動のスピード
-  ox = ox + sp*m[0];
+  let sp=charSP; // 横移動のスピード
+  if(jumpsts==0){mx = sp*m[0];}
+  else{
+    mx += 2*m[0];
+    if(mx < -charSP){mx=-charSP;}
+    if(mx > +charSP){mx=+charSP;}
+  }
+  ox = ox + mx;
   if(ox < 5){ox=5;}
   if(ox > gXXX-5-dsz){ox=gXXX-5-dsz;}
   oy = mapdown(ox,oy,my); // この関数に任せる
@@ -117,10 +133,11 @@ function chardraw(ctx,n){
   psz*ix,psz*iy,psz,psz, /* 元の絵 の どこを参照する */
   ox,oy,dsz,dsz); /* Canvasのどこに描くか */
   }
-  //DEBUG
+  /* //DEBUG// 床との接地面
   let mm = 5;
   ctx.fillStyle = "#00FF00"; // 緑
   ctx.fillRect(ox+(dsz/2)-mm,oy+dsz-mm,2*mm,2*mm);
+  */
 }
 
 // 画像の読み込み
@@ -185,7 +202,11 @@ function mapdraw(ctx){
 function mapdown(xx,yy,ly){
   // 上昇時は落下の危険性なし。「early return」
   if(yy < 0 || ly < 0){
-    my += ggg; // 重力
+    if(jumpsts!=2){
+      my += ggg; // 重力
+    }else{
+      my += ggg/3; // 重力
+    }
     my = (-jjj < my) ? -jjj : my;
     return yy+ly;
   }
