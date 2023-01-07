@@ -6,12 +6,78 @@ class contrclass{
     this.btnSetting = [0,1,2,3]; // 初期値
     this.init();
     this.gamepad = null;
+    // キーボード受付
+    window.addEventListener("keydown", this.kdown.bind(this), { passive: false });
+    window.addEventListener("keyup", this.kup.bind(this), { passive: false });
+    this.kaxes = [0,0]
   }
+  //--- キーボードここから ---
+  kstate(oo,aa){
+    if(aa==1){
+      this.kaxes[0] = -1*oo;
+    }else if(aa==2){
+      this.kaxes[0] = +1*oo;
+    }else if(aa==3){
+      this.kaxes[1] = -1*oo;
+    }else if(aa==0){
+      this.kaxes[1] = +1*oo;
+    }else if(aa==10){
+      this.kpush = +1*oo;
+    }else if(aa==11){
+      this.kpush = +2*oo;
+    }
+  }
+  kup(event){
+    this.kcommon(event.key,0);
+  }
+  kdown(event){
+    this.kcommon(event.key,1);
+    switch(event.key) {
+    case "Enter":
+      if(startPintvl <= 0){
+        startPushed = 1;
+        startPintvl = 60;
+      }
+      break
+    }
+  }
+  kcommon(key,v){
+    switch(key) {
+    case "z":
+      this.kstate(v,10);
+      break;
+    case "x":
+      this.kstate(v,11);
+      break;
+    case "ArrowDown":
+      this.kstate(v,0);
+      break;
+    case "ArrowUp":
+      this.kstate(v,3);
+      break;
+    case "ArrowLeft":
+      this.kstate(v,1);
+      break;
+    case "ArrowRight":
+      this.kstate(v,2);
+      break;
+    }
+  }
+  kfunc(aaa){
+    if(aaa==1){return this.kaxes;}
+    /* ！！ ０が押してないなので、意味がそろってない [TODO] */
+    if(aaa==2){return this.kpush;} 
+  }
+  //--- キーボードここまで ---
 
   // もうこれを呼んでくれ
   getPushedKey(){
     let Pressed = -1;
     let mv = [0,0];
+    // キーボードの左右とZXをもらう
+    mv = this.kfunc(1);
+    let p = this.kfunc(2); // zは1、xは2。押してないとき０
+    Pressed = (p==1)? 0 : -1; // z ならジャンプとする
     // ゲームキーが来るなら上書き
     let arg = this.getcont();
     if(arg == null){
@@ -74,3 +140,4 @@ class contrclass{
     console.log("cont:Init involke.");
   }
 }
+
