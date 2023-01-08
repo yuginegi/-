@@ -40,6 +40,14 @@ function mainloop(ctx,con,yd){
     ctx.fillText("GAME OVER",gXXX/2,gYYY/2);
     return;
   }
+  if(bossHP <= 0){
+    ctx.fillStyle = "#0000FF";
+    ctx.font = "60px 'ＭＳ ゴシック'";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("GAME CLEAR",gXXX/2,gYYY/2);
+    return;
+  }
   // 時間経過
   tt++;
   // 前景の計算
@@ -56,6 +64,36 @@ function mainloop(ctx,con,yd){
   // 前景の描画
   let n = Math.floor(tt/(5)); // 5フレームで１つ絵を変える
   chardraw(ctx, n%4); // ４つで１セット
+
+  // Thunder
+  if(bossDwait > 0){bossDwait--;}
+  if(mthunder > 0){
+    let [xx,yy,dd] = mtpos;
+    ctx.fillStyle = "#FFFF00";
+    let ww = 15*(20-mthunder);
+    let hh = 60;
+    xx = (dd == 1)? xx : xx-ww;
+    yy = yy-hh/2;
+    // 表示
+    ctx.fillRect(xx,yy,ww,hh);
+    //雷ヒット
+    if(bossDwait <= 0){
+      yd.thunderhit(xx,yy,ww,hh);
+    }
+  }
+
+  // 敵 HP表示
+  {
+    let n = bossHP;
+    ctx.fillStyle = "#0000FF";
+    ctx.font = "32px 'ＭＳ ゴシック'";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("EN:"+n,10,10);
+    for(let i=0;i<n;i++){
+      ctx.fillRect(100+40*i,10,32,32);
+    }
+  }
   // HP表示
   {
     let n = charHP;
@@ -63,13 +101,15 @@ function mainloop(ctx,con,yd){
     ctx.font = "32px 'ＭＳ ゴシック'";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText("HP:"+n,10,10);
+    ctx.fillText("HP:"+n,10,50);
     for(let i=0;i<n;i++){
-      ctx.fillRect(110+40*i,10,32,32);
+      ctx.fillRect(100+40*i,50,32,32);
     }
   }
 }
 
+var bossHP = 7;
+var bossDwait = 0;
 /****************************************************
  * 前景
  * *************************************************/
@@ -87,6 +127,8 @@ var dmgwait = 0;
 var charHP = 7; // HP=28
 var charSP = 6;
 var md = 0; // 向き
+var mthunder = 0;
+var mtpos = [0,0,0];
 function charmove(con){
   // コントローラからキーもらう(pはボタン(0-3に限定)、mは方向キー)
   let [p,m] = con.getPushedKey();
@@ -98,6 +140,15 @@ function charmove(con){
     my = jjj;//-Math.abs(1*m[0]); // とりあえずジャンプ力
     jwait = jwaitbase; // 連続ジャンプは待って
   }
+
+  if(mthunder > 0){mthunder--;}
+  if(mthunder<=0 && p==1){
+    console.log("Thunder!");
+    mthunder = 15;
+    let mtd = (m[0]!=0)? m[0] : md;
+    mtpos = [ox+dsz/2,oy,mtd];
+  }
+
   if(jumpsts==2){
     //console.log("Jumping");
     if(p!=0 || my > 0){ // ボタンを離したら、もしくは下降したら
@@ -283,6 +334,16 @@ class ydClass{
       yb.hit(xx,yy,sz);
     }
   }
+  thunderhit(xx,yy,ww,hh){
+    if(this.eye){
+      let [ex,ey,ez] = this.eye.getPos();
+      if(utilRangeDup(xx,xx+ww,ex,ex+ez) && utilRangeDup(yy,yy+hh,ey,ey+ez)){
+        console.log("BOSS DAMAGE!");
+        bossHP--;
+        bossDwait = 30;
+      }
+    }
+  }
   // 状態遷移のような
   move(){
     this.tm++;
@@ -383,6 +444,9 @@ class yblock{
       this.sp = +1*this.spbase;
     }
   }
+  getPos(){
+    return this.pos;
+  }
   // 衝突判定
   hit(ox,oy,oz){
     if(dmgwait>0){return;}
@@ -420,7 +484,7 @@ class yblock{
     let [xx,yy,sz] = this.pos;
     if(this.wtime==0 && this.tx > this.txinvalid){
       if(type==0){return;}
-      ctx.fillStyle = "#FFFF00";
+      ctx.fillStyle = "#FFCC00";
       this.cdraw(ctx,xx+sz/2,yy+sz/2,sz/2); // 黄色のマル
     }else{
       if(type==1){return;}
@@ -444,7 +508,11 @@ class yblock{
   cdraw(ctx,cx,cy,cz){
     ctx.beginPath();
     ctx.arc(cx,cy,cz, 0, Math.PI*2, false);
-    ctx.fill();    
+    ctx.fill();
+    ctx.strokeStyle = "#000000";
+    ctx.beginPath();
+    ctx.arc(cx,cy,cz, 0, Math.PI*2, false);
+    ctx.stroke();
   }
 }
 
