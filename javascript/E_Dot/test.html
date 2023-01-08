@@ -1,0 +1,171 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gMMM = 32;
+var gNXX = 16;
+var gNYY = 15;
+var gXXX = gMMM*gNXX;
+var gYYY = gMMM*gNYY;
+var gimg = [];
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // 絵読み込み (本来は読み込み完了を待つべき)
+  gimg[0] = new Image();
+  gimg[0].src = "ydvr.png";
+  gimg[1] = new Image();
+  gimg[1].src = "ydv.png";
+  // MAP初期化
+  mapInit();
+  // 無限ループする
+  infiniteloop(ctx);
+}
+function infiniteloop(ctx){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx);
+}
+var tt = 0;
+function mainloop(ctx){
+  //時間経過
+  tt++;
+  // 背景
+  ctx.fillStyle = "#CCCCFF"; // 青っぽい
+  ctx.fillRect(0,0,gXXX,gYYY);
+  //DBG
+  ldraw(ctx); // 線
+
+  // 描く
+  for(let j=0;j<gNYY;j++){
+  for(let i=0;i<gNXX;i++){
+    mapdraw(ctx, i, j);
+  }}
+
+  // 敵キャラ
+  let t = tt%(6*30);
+  if(t < 4*30){ // 0,1,2,3
+    ctx.drawImage(gimg[0],0,0,200,200,
+      32*10,32*5,32*5,32*5
+    );
+  }
+  if( t < 1*30 || 3*30 <= t){ // 0,3,4,5
+    ctx.drawImage(gimg[1],0,0,200,200,
+      32*1,32*5,32*5,32*5
+    );
+  }
+
+  // 床
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(32*0,32*10,32*15,32);
+  ctx.fillStyle = "#CCCCCC";
+  ctx.fillRect(32*0,32*10,32*15,6);
+  ctx.fillRect(32*0,32*10+32-6,32*15,6);
+  ctx.fillStyle = "#CCCC44";
+  for(let i=32*0;i<32*15;i=i+6){
+    ctx.fillRect(i+2,32*10+10,4,32-20);
+  }
+
+  drawHPBAR(ctx);
+}
+
+function drawHPBAR(ctx){
+  let t = Math.floor(tt/10);
+  drawGAGE(ctx,48,48,28-(t%24),"#CCCC00");
+  drawGAGE(ctx,32,48,26,"#00CCCC");
+  // Enemy
+  drawGAGE(ctx,80,48,28,"#CC0000");
+  return;
+}
+function drawGAGE(ctx,xx,yy,hp,cl){
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(xx,yy,16,16*7);
+  ctx.fillStyle = cl;
+  for(let j=0;j<hp;j++){
+    let y = yy+16*7-4-4*j;
+    ctx.fillRect(xx+2,y,16-4,2);
+  }
+}
+
+var map = []; // Y,X
+function mapInit(){
+  for(let j=0;j<gNYY;j++){
+    map[j] = new Array(gNXX).fill(0);
+  }
+  // セット
+  for(let j=2;j<2+8;j++){
+    map[j][0] = 1;
+  }
+  for(let i=0;i<gXXX;i+=2){
+    map[0][i] = 8;
+    map[10][i] = 8;
+    map[12][i] = 8;
+    map[14][i] = 8;
+  }
+  for(let j=2;j<2+10;j+=2){
+    map[j][gNXX-1] = 8;
+  }
+}
+// 関数ポインタ（？）の使いどころ
+function mapdraw(ctx, i, j){
+  let v = map[j][i];
+  let [xx,yy] = [gMMM*i,gMMM*j];
+  //DBG//console.log("v="+v);
+  if(v==0){return;}
+  if(v==1){return mdraw1(ctx,xx,yy);}
+  if(v==8){return mdraw8(ctx,xx,yy);}
+  ctx.fillStyle = "#FF0000";
+  ctx.fillRect(xx,yy,gMMM,gMMM);
+}
+
+// 32x32
+function mdraw1(ctx,xx,yy){
+  ctx.fillStyle = "#8888CC"; // 白め 
+  ctx.fillRect(xx+4,yy,          8,gMMM);  
+  ctx.fillRect(xx+(gMMM/2)+4,yy, 8,gMMM);
+  ctx.fillStyle = "#444488"; // 青め
+  ctx.fillRect(xx+8,yy,          4,gMMM);  
+  ctx.fillRect(xx+(gMMM/2)+8,yy, 4,gMMM);
+  // 黒
+  ctx.fillStyle = "#000000";
+  // 縦線
+  ctx.fillRect(xx,yy,4,gMMM);
+  ctx.fillRect(xx+(gMMM/2)-4,yy, 4,gMMM);
+  ctx.fillRect(xx+(gMMM/2),yy, 4,gMMM);
+  ctx.fillRect(xx+gMMM-4,yy,4,gMMM);
+  // 横線
+  ctx.fillRect(xx,yy+(gMMM/2)-4,gMMM,4);
+  ctx.fillRect(xx,yy+gMMM-4,gMMM,4);
+}
+
+// 64x64
+function mdraw8(ctx,xx,yy){
+  let mm = gMMM*2;
+  ctx.fillStyle = "#888888"; // 灰
+  ctx.fillRect(xx,yy,mm,mm);
+  ctx.fillStyle = "#000000"; // 黒
+  ctx.fillRect(xx,yy,1,mm);
+  ctx.fillRect(xx+mm-1,yy,1,mm);
+  ctx.fillRect(xx,yy,mm,1);
+  ctx.fillRect(xx,yy+mm-1,mm,1);
+}
+
+function ldraw(ctx){
+  ctx.fillStyle = "#0000FF"; // DBG
+  for(let j=0;j<gNYY;j++){
+  for(let i=0;i<gNXX;i++){
+    let [xx,yy] = [gMMM*i,gMMM*j];
+    ctx.fillRect(xx+gMMM-1,yy,1,gMMM);
+    ctx.fillRect(xx,yy+gMMM-1,gMMM,1);
+  }}
+
+}
+
+</script>
+</body>
+</html>
