@@ -1,0 +1,458 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // 無限ループする
+  infiniteloop(ctx);
+}
+function infiniteloop(ctx){
+  // ★絶対必要★ 画像ファイルを読み込む！！
+  drawInit();
+  mapinit();
+  let yd = new ydClass(ctx);
+  // コントローラを使う（ちょっとクセ強クラス実装でごめんなさい）
+  let con = new contrclass(null);
+
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx,con,yd);
+}
+
+var tt = 0; // 時間 
+function mainloop(ctx,con,yd){
+  if(charHP <= 0){
+    ctx.fillStyle = "#0000FF";
+    ctx.font = "60px 'ＭＳ ゴシック'";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("GAME OVER",gXXX/2,gYYY/2);
+    return;
+  }
+  // 時間経過
+  tt++;
+  // 前景の計算
+  charmove(con);
+  // 背景 ◇ 今回は固定にします
+  backdraw(ctx,0);
+
+  // 敵
+  yd.move();
+  yd.draw();
+  // 当たり判定
+  yd.hit(ox,oy,dsz);
+
+  // 前景の描画
+  let n = Math.floor(tt/(5)); // 5フレームで１つ絵を変える
+  chardraw(ctx, n%4); // ４つで１セット
+  // HP表示
+  {
+    let n = charHP;
+    ctx.fillStyle = "#FF0000";
+    ctx.font = "32px 'ＭＳ ゴシック'";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("HP:"+n,10,10);
+    for(let i=0;i<n;i++){
+      ctx.fillRect(110+40*i,10,32,32);
+    }
+  }
+}
+
+/****************************************************
+ * 前景
+ * *************************************************/
+// 前景の位置
+var dsz = 50; // 描画するサイズ
+// 上昇時重力無ければ、15,1.5 当たりがいい感じな・・
+var [jjj,ggg] = [-20,+3];//[-25,+5]; // ジャンプ力、重力
+var [ox,oy] = [50,50]; // グローバル ＆ 初期値
+var jumpsts = 0; // 0:ジャンプしてない、＋：ジャンプしている
+var my = 0; // Y方向への影響
+var mx = 0; // x方向への影響
+var jwait = 0;
+var jwaitbase = 5;
+var dmgwait = 0;
+var charHP = 7; // HP=28
+var charSP = 6;
+var md = 0; // 向き
+function charmove(con){
+  // コントローラからキーもらう(pはボタン(0-3に限定)、mは方向キー)
+  let [p,m] = con.getPushedKey();
+  if(jumpsts==0 && jwait > 0){jwait--;}
+  //ジャンプ処理
+  else if(jumpsts==0 && p==0){ // ジャンプする
+    //console.log("Jump: 0 -> 2");
+    jumpsts = 2; // 2に定義しておく
+    my = jjj;//-Math.abs(1*m[0]); // とりあえずジャンプ力
+    jwait = jwaitbase; // 連続ジャンプは待って
+  }
+  if(jumpsts==2){
+    //console.log("Jumping");
+    if(p!=0 || my > 0){ // ボタンを離したら、もしくは下降したら
+      jumpsts = 1; // 落下
+      if(my < 0){my = 0;}
+    }
+  }
+  // 移動
+  let sp=charSP; // 横移動のスピード
+  if(jumpsts==0){mx = sp*m[0];}
+  else{
+    mx += (sp/3)*m[0]; // charSPよりは弱く、ブレーキは効く
+    if(mx < -charSP){mx=-charSP;}
+    if(mx > +charSP){mx=+charSP;}
+  }
+  //向き
+  md = (m[0]!=0)? m[0] : md;
+  // X方向
+  ox = ox + mx;
+  //端に行けないようにする
+  if(ox < 5){ox=5;}
+  if(ox > gXXX-5-dsz){ox=gXXX-5-dsz;}
+  // Y方向
+  oy = mapdown(ox,oy,my); // myの更新、この関数に任せる
+}
+
+// 前景
+function chardraw(ctx,n){
+  let psz = 200; // 画像のサイズが200x200
+  let ix = (n==3)? 1:n;
+  let iy = (jumpsts!=0)?2:0;
+  /* if(dmgwait%4 > 1){
+    // 表示しない
+  }else{
+    ctx.drawImage(gImg, psz*ix,psz*iy,psz,psz, ox,oy,dsz,dsz);
+  }*/
+  if(dmgwait%4 > 1){
+    return; // early return
+  }
+  if(md == -1){
+    /* ！！この方法はおススメしません。逆向きの画像を用意しておく方が賢い */
+    ctx.save(); // Saveする
+    ctx.scale(-1, 1); // 左右反転にする（１）
+    ctx.translate(-gXXX,0); // 左右反転にする（２）
+    ctx.drawImage(gImg,
+    psz*ix,psz*iy,psz,psz, /* 元の絵 の どこを参照する */
+    gXXX-ox,oy,-dsz,dsz); /* 左右反転にする（３） */
+    ctx.restore(); // Saveにもどる：translateを無かったことにする
+  }else{
+    ctx.drawImage(gImg,
+    psz*ix,psz*iy,psz,psz, /* 元の絵 の どこを参照する */
+    ox,oy,dsz,dsz); /* Canvasのどこに描くか */
+  }
+}
+
+// 画像の読み込み
+var gImg = ""; // グローバル
+var gBackImg = ""; // グローバル
+var gBoss = [];
+function drawInit(){
+  gImg = new Image();
+  gImg.src = "pict.png";
+  gBackImg = new Image();
+  gBackImg.src = "back.png";
+  gBoss[0] = new Image();
+  gBoss[0].src = "ydv.png";
+  gBoss[1] = new Image();
+  gBoss[1].src = "ydvr.png";
+}
+
+/****************************************************
+ * 背景とマス（map）
+ * *************************************************/
+// 背景
+function backdraw(ctx,n){
+  ctx.drawImage(gBackImg,
+  0+n,0,400,400, /* 元の絵 の どこを参照する */
+  0,0,400,400); /* Canvasのどこに描くか */
+  mapdraw(ctx);
+}
+// マスのサイズは20×20にします。
+var map=[]; // 2次元。Y方向、X方向
+var msz = 20; // サイズ
+function mapinit(){
+  for(let j=0;j<gYYY/msz;j++){
+    map[j] = new Array(gXXX/msz).fill(0);
+  }
+  // 地面（y=300）
+  let y = 300/msz;
+  for(let i=0;i < gXXX/msz;i++){
+    map[y][i] = 1;
+  }
+}
+function yokoyukaset(yy,s,e){
+  for(let i=s;i<e;i++){
+    map[yy][i] = 1;
+  }
+}
+function mapdraw(ctx){
+  ctx.fillStyle = "#FF0000"; // 赤
+  ctx.strokeStyle = "#000000"; // 黒
+  // 2次元 ループ・・・
+  for(let j=0;j<gYYY/msz;j++){
+    for(let i=0;i<gXXX/msz;i++){
+      if(map[j][i] != 0){
+        ctx.fillRect(msz*i,msz*j,msz,msz);
+        ctx.strokeRect(msz*i,msz*j,msz,msz);
+      }
+    }
+  }
+}
+// ＜床が無ければ落ちる、床があれば留まる処理＞
+// ！！ 入力がキャラの左上の点であることに注意
+// 重力とかジャンプ系をこちらに持ってきた
+function mapdown(xx,yy,ly){
+  // 上昇時は落下の危険性なし。「early return」
+  if(yy < 0 || ly < 0){
+    my += ggg;
+    my = (-jjj < my) ? -jjj : my; // 落下速度遅くなりすぎない
+    return yy+ly;
+  }
+  // ０のとき、落下の危険性があるかを判定
+  let csz = dsz; // キャラのサイズ
+  let x = Math.floor((xx+(csz/2))/msz); // 中心の点をX
+  let s = Math.floor((yy+csz)/msz); // 足元のY座標：キャラの上部からサイズを足す
+  let e = Math.floor((yy+csz+ly)/msz); // 落下予定のY座標：さらに落下距離足す
+  // 床があるかどうか
+  for(let i=s;i<=e;i++){
+    if(map[i][x]!=0){
+      if(jumpsts==1){jumpsts = 0;} // 飛んでないことにする
+      my = 0; // 念のため０にする
+      //DBG//console.log("md2");
+      return i*msz-csz; // 床から計算したキャラの上の座標を渡す
+    }
+  }
+  jumpsts = 1; // （落下しているので）ジャンプはできない
+  my += ggg; // 重力
+  my = (-jjj < my) ? -jjj : my; // 落下速度遅くなりすぎない
+  return yy+ly;
+}
+
+/****************************************************
+ * 仮想敵のクラス
+ * *************************************************/
+//https://kuwatan.jp/2392/yellow.html
+class ydClass{
+  constructor(ctx){
+    this.ctx = ctx;
+    // 状態の変数
+    this.sts = 0;
+    this.tm = 0;
+    // 各状態で使う変数
+    this.idx = 0;
+    this.evt = 0;
+    this.eye = null;
+    // 管理するパーツ
+    this.mp = [];
+    let mv = [23,22,24,21,17,18,16,15,14,13,12,10,11,8,6,7,5,9,2];
+    this.init(mv);
+  }
+  init(mv){
+    for(let ii of mv){
+      let yb = new yblock(this,ii);
+      this.mp.push(yb);
+    }
+  }
+  // ボツ 下からもらう案 → 使ってない
+  notify(){}
+  // コントロールする
+  eventcontrol(tm){
+    if(tm%10==0){ // 10F 毎に
+      this.evt = 1;
+    }
+  }
+  hit(xx,yy,sz){
+    // early return
+    if(dmgwait>0){
+      dmgwait--;
+      return;
+    }
+    // 管理しているものがそれぞれヒットしているかどうか
+    for(let yb of this.mp){
+      yb.hit(xx,yy,sz);
+    }
+  }
+  // 状態遷移のような
+  move(){
+    this.tm++;
+    if(this.sts == 0){ // 動き出しの待ち時間
+      if(this.tm > 5*30){
+        this.sts = 1;
+        this.tm = 0;
+        this.idx = 0;
+      }
+    }else if(this.sts == 1){ // パーツが動く
+      this.eventcontrol(this.tm);
+      if(this.evt!=0){
+        if(this.idx < this.mp.length){
+          let yb = this.mp[this.idx];
+          yb.trigger();
+          this.evt = 0; // イベントリセット
+          this.idx++; // ここでインクリメント
+        }else{
+          // 打ち切ったら 状態2に寄る
+          this.sts = 2;
+          this.tm = 0;
+          this.eye = null;
+        }
+      }
+    }else if(this.sts == 2){ // 目を出す
+      if(90 < this.tm){
+        this.sts = 0;
+        this.tm = 5*30 - 1*30; // すぐ再開したほうがいいから 
+        this.eye = null;
+      }else if(30 == this.tm){
+        // (0)23,22,24,21,17, (5)18,16,15,14,13,
+        // (10)12,10,11,8,6, (15)7,5,9,2
+        // 12=>11,11=>10,14=>6,16=>5
+        let elist = [12,11,14,16];
+        let r = Math.floor( Math.random() * 4);
+        let ee = elist[r];
+        this.eye = this.mp[ee]; // 目
+      }
+    }
+    // 管理しているブロック、動けるなら動いてもらう
+    for(let yb of this.mp){
+      yb.move();
+    }
+  }
+  draw(){
+    // 管理しているブロック、描画してもらう
+    for(let yb of this.mp){
+      yb.draw(this.ctx,0); // 止まっているものを先に
+    }
+    for(let yb of this.mp){
+      yb.draw(this.ctx,1); // 動いているものを後に
+    }
+    // Null じゃなければ 目を出す
+    if(this.eye != null){
+      this.eye.eyedraw(this.ctx); // 目
+    }
+  }
+}
+/****************************************************
+ * 仮想敵のクラスの各パーツ
+ * *************************************************/
+class yblock{
+  constructor(yc,ii){
+    this.yc = yc; // 親
+    this.ii = ii;
+    let ix = Math.floor(ii/5);
+    let iy = (ii%5);
+    this.ix = ix;
+    this.iy = iy;
+    this.spbase = 18;
+
+    this.dr = 0; // １：右、０：左
+    let sz = 30;
+    let xx = 250+ix*sz;
+    let yy = 150+iy*sz;
+    xx = xx -gXXX;
+
+    this.pos = [xx,yy,sz];
+    this.sp = this.spbase;
+    this.txinvalid = -1000;
+    this.tx = this.txinvalid;
+    this.wtimebase = 12;
+    this.wtime = 0;
+  }
+  // 上から動けと言われたら、txが計算で設定される
+  trigger(){
+    //console.log("ii="+this.ii);
+    let ix = this.ix;
+    let sz = this.pos[2];
+    this.wtime = this.wtimebase;
+    if(this.dr == 1){
+      this.dr = 0;
+      this.tx = gXXX-sz-(250+ix*sz);
+      this.sp = -1*this.spbase;
+    }else{
+      this.dr = 1;
+      this.tx = (250+ix*sz);
+      this.sp = +1*this.spbase;
+    }
+  }
+  // 衝突判定
+  hit(ox,oy,oz){
+    if(dmgwait>0){return;}
+    let [fx,fy,sz] = this.pos;
+    let mg = 12;
+    // (ox+0.4*oz < fx+mg && fx-mg < ox+0.6*oz) && (oy < fy+mg && fy-mg < oy+0.6*oz))
+    if(utilRangeDup(ox+0.4*oz,ox+0.6*oz,fx-mg,fx+mg)
+    && utilRangeDup(oy,oy+0.6*oz,fy-mg,fy+mg)){
+      console.log("damage!!");
+      charHP--;
+      dmgwait = 2*30; // 数秒は無敵
+    }
+  }
+  // 動き
+  move(){
+    if(this.wtime > 0){
+      this.wtime--; // 点滅
+    }else if(this.tx >= -gXXX){
+      let sp = this.sp;
+      this.pos[0] = this.pos[0] + sp;
+      // 動き終わった（txに到達したかどうか） かどうか
+      if((this.dr==0 && this.pos[0] < this.tx)
+       || (this.dr==1 && this.pos[0] > this.tx)){
+        this.pos[0] = this.tx;
+        this.tx = this.txinvalid;
+        this.wtime = this.wtimebase;
+        this.yc.notify(); // 完了通知
+      }
+    }else{
+      // なにもしない
+    }
+  }
+  // 描画
+  draw(ctx,type){
+    let [xx,yy,sz] = this.pos;
+    if(this.wtime==0 && this.tx > this.txinvalid){
+      if(type==0){return;}
+      ctx.fillStyle = "#FFFF00";
+      this.cdraw(ctx,xx+sz/2,yy+sz/2,sz/2); // 黄色のマル
+    }else{
+      if(type==1){return;}
+      if(this.wtime > 0){
+        ctx.fillStyle = (this.wtime%4>=2)? "#FF00FF":"#FF0000";
+        ctx.fillRect(xx,yy,sz,sz); // 点滅の四角
+      }else{
+        let [ii,ix,iy]=(this.dr==1)?[1,this.ix,this.iy]:[0,4-this.ix,this.iy];
+        ctx.drawImage(gBoss[ii],40*ix,40*iy,40,40,xx,yy,sz,sz); // 絵を出す
+      }
+    }
+  }
+  // 目を描く
+  eyedraw(ctx){
+    let [xx,yy,sz] = this.pos;
+    let [cx,cy,cz] = [xx+sz/2,yy+5+sz/2,sz/4];
+    ctx.fillStyle = "#FF0000";
+    this.cdraw(ctx,cx,cy,cz);
+  }
+  // マルを描く
+  cdraw(ctx,cx,cy,cz){
+    ctx.beginPath();
+    ctx.arc(cx,cy,cz, 0, Math.PI*2, false);
+    ctx.fill();    
+  }
+}
+
+//2つの期間が重なり合うかどうかを判定する。 // 重なるなら１
+//https://koseki.hatenablog.com/entry/20111021/range
+function utilRangeDup(a1,a2,b1,b2){
+  return ((b1 <= a2) && (a1 <= b2));
+}
+</script>
+</body>
+</html>
