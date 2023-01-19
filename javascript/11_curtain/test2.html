@@ -1,0 +1,123 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+
+  drawInit();
+  // コントローラを使う（ちょっとクセ強クラス実装でごめんなさい）
+  let con = new contrclass(null);
+  // 無限ループする
+  infiniteloop(ctx,con);
+}
+function infiniteloop(ctx,con){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx,con);
+}
+
+// 画像の読み込み
+var gImg = ""; // グローバル
+function drawInit(){
+  gImg = new Image();
+  gImg.src = "pict.png";
+}
+
+var tt = 0; // 時間 
+var sts = 0;
+var stswait = 0;
+var curtime = 30; // ★ 30フレーム
+function mainloop(ctx,con){
+  // 時間経過
+  tt++;
+  let pg = [page1,page2,page3,page4];
+
+  let [p,m] = con.getPushedKey();
+  if(p != -1 && stswait <= 0){
+    //sts = (sts+1)%(pg.length);
+    stswait = curtime;
+  }
+  pg[sts](ctx);
+
+  // 変化中はカバー
+  if(stswait > 0){
+    stswait--;
+    switchpg(ctx, stswait);
+  }
+  // 途中で状態を変える
+  if(stswait == curtime/2){
+    sts = (sts+1)%(pg.length);
+  }
+}
+
+function switchpg(ctx, tm){
+  // Curtain
+  let [tt,uu] = [2, gYYY/6]; // ★ 2フレームおきにカーテン動く
+  let yy = [3.5*uu,0.5*uu,5*uu,2*uu,0,3*uu];
+  let hh = [2*uu,2*uu, uu, 1.5*uu, uu, uu];
+  let cl = ["#000080","#4169e1","#b0c4de","#87cefa","#00bfff","#afeeee"];
+  for(let i=0;i<cl.length;i++){
+    this.fg1(ctx,tm, i*tt,(i+1)*tt,i%2,cl[i], yy[i], hh[i]);
+  }
+}
+function fg1(ctx,t,s,e,d,c,y,h){
+  ctx.fillStyle = c;
+  let w;
+  if(t < curtime/2){
+    w = utilTimeRangeValue(t,s,e,0,gXXX); // 閉める
+  }else{
+    w = utilTimeRangeValue(t,curtime-e,curtime-s,gXXX,0); // 開ける
+  }
+  let x = (d==0)? 0 : gXXX-w;
+  ctx.fillRect(x,y,w,h);
+}
+
+function utilTimeRangeValue(ttt,sss,fff, vs,ve){
+  if(ttt < sss){return vs;}
+  if(ttt < fff){return vs + (ve-vs)*(ttt-sss)/(fff-sss);}
+  return ve;
+}
+
+//----------------------------------------------------------
+
+function drawpict(ctx, ii){
+  // 背景
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0,0,gXXX,gYYY);
+  // 前景
+  let ix = ii%4;
+  let iy = Math.floor(ii/4);
+  ctx.drawImage(gImg,200*ix,200*iy,200,200,0,0,gXXX,gYYY);
+}
+
+
+function page1(ctx){
+  drawpict(ctx,0);
+}
+
+function page2(ctx){
+  drawpict(ctx,1);
+}
+
+function page3(ctx){
+  drawpict(ctx,4);
+}
+
+function page4(ctx){
+  drawpict(ctx,8);
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+
+  // コントローラを使う（ちょっとクセ強クラス実装でごめんなさい）
+  let con = new contrclass(null);
+  // 無限ループする
+  infiniteloop(ctx,con);
+}
+function infiniteloop(ctx,con){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx,con);
+}
+
+var tt = 0; // 時間 
+var sts = 0;
+var stswait = 0;
+function mainloop(ctx,con){
+  // 時間経過
+  tt++;
+  let pg = [page1,page2,page3,page4];
+
+  if(stswait > 0){
+    stswait--;
+  }else{
+    let [p,m] = con.getPushedKey();
+    if(p != -1){
+      sts = (sts+1)%(pg.length);
+      stswait = 5;
+    }
+  }
+  pg[sts](ctx);
+}
+
+function page1(ctx){
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(10,10,50,50);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "30px 'ＭＳ ゴシック'";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText("1",20,20);
+}
+
+function page2(ctx){
+  ctx.fillStyle = "#FF0000";
+  ctx.fillRect(10,10,50,50);
+  ctx.fillStyle = "#000000";
+  ctx.font = "30px 'ＭＳ ゴシック'";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText("2",20,20);
+}
+
+function page3(ctx){
+  ctx.fillStyle = "#FF00FF";
+  ctx.fillRect(10,10,50,50);
+  ctx.fillStyle = "#000000";
+  ctx.font = "30px 'ＭＳ ゴシック'";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText("3",20,20);
+}
+
+function page4(ctx){
+  ctx.fillStyle = "#0000FF";
+  ctx.fillRect(10,10,50,50);
+  ctx.fillStyle = "#000000";
+  ctx.font = "30px 'ＭＳ ゴシック'";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText("4",20,20);
+}
+
+</script>
+</body>
+</html>

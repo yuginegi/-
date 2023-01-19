@@ -1,0 +1,102 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 400;
+var gYYY = 400;
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+
+  drawInit();
+  // コントローラを使う（ちょっとクセ強クラス実装でごめんなさい）
+  let con = new contrclass(null);
+  // 無限ループする
+  infiniteloop(ctx,con);
+}
+function infiniteloop(ctx,con){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx,con);
+}
+
+// 画像の読み込み
+var gImg = ""; // グローバル
+function drawInit(){
+  gImg = new Image();
+  gImg.src = "pict.png";
+}
+
+var tt = 0; // 時間 
+var sts = 0;
+var stswait = 0;
+function mainloop(ctx,con){
+  // 時間経過
+  tt++;
+  let pg = [page1,page2,page3,page4];
+
+  let [p,m] = con.getPushedKey();
+  if(p != -1 && stswait <= 0){
+    //sts = (sts+1)%(pg.length);
+    stswait = 30;
+  }
+  pg[sts](ctx);
+
+  // 変化中はカバー
+  if(stswait > 0){
+    stswait--;
+    switchpg(ctx, stswait);
+  }
+  if(stswait == 15){
+    sts = (sts+1)%(pg.length);
+  }
+}
+
+function switchpg(ctx, t){
+  ctx.fillStyle = "#0000FF";
+  if(t >= 15){
+    let xx = gXXX * (30-t)/15; // 30:0 -> 15:1
+    ctx.fillRect(0,0,xx,gYYY);
+  }else{
+    let xx = gXXX * (15-t)/15; // 15:0 -> 0:1
+    ctx.fillRect(xx,0,gXXX,gYYY);
+  }
+}
+
+function drawpict(ctx, ii){
+  // 背景
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0,0,gXXX,gYYY);
+  // 前景
+  let ix = ii%4;
+  let iy = Math.floor(ii/4);
+  ctx.drawImage(gImg,200*ix,200*iy,200,200,0,0,gXXX,gYYY);
+}
+
+
+function page1(ctx){
+  drawpict(ctx,0);
+}
+
+function page2(ctx){
+  drawpict(ctx,1);
+}
+
+function page3(ctx){
+  drawpict(ctx,4);
+}
+
+function page4(ctx){
+  drawpict(ctx,8);
+}
+
+</script>
+</body>
+</html>
