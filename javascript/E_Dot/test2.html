@@ -1,0 +1,208 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gMMM = 32;
+var gNXX = 16;
+var gNYY = 15;
+var gXXX = gMMM*gNXX;
+var gYYY = gMMM*gNYY;
+var gimg = [];
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // 絵読み込み (本来は読み込み完了を待つべき)
+  gimg[0] = new Image();
+  gimg[0].src = "ydvr.png";
+  gimg[1] = new Image();
+  gimg[1].src = "ydv.png";
+  // MAP初期化
+  mapInit();
+  // 無限ループする
+  infiniteloop(ctx);
+}
+function infiniteloop(ctx){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx);
+}
+
+var sts = 1;
+var tt = 0;
+function mainloop(ctx){
+  if(tt%150==0){
+    let minit = [mapInit, mapInit2];
+    sts = (sts+1)%2;
+    minit[sts]();
+  }
+  //時間経過
+  tt++;
+  // 背景
+  ctx.fillStyle = "#CCCCFF"; // 青っぽい
+  ctx.fillRect(0,0,gXXX,gYYY);
+  //DBG
+  ldraw(ctx); // 線
+
+  // 描く
+  for(let j=0;j<gNYY;j++){
+  for(let i=0;i<gNXX;i++){
+    mapdraw(ctx, i, j);
+  }}
+
+  let mapfunc = [map1, map2];
+  // 床
+  mapfunc[sts](ctx);
+  drawHPBAR(ctx);
+}
+
+var map = []; // Y,X
+function mapInit(){
+  for(let j=0;j<gNYY;j++){
+    map[j] = new Array(gNXX).fill(0);
+  }
+  // セット
+  for(let j=0;j<gNYY;j+=2){
+    map[j][0] = 8;
+  }
+  for(let i=0;i<gNXX;i+=2){
+    map[0][i] = 8;
+    map[2][i] = 8;
+    map[4][i] = 8;
+    map[12][i] = 8;
+    map[14][i] = 8;
+  }
+  map[10][gNXX-2] = 8;
+}
+
+function mapInit2(){
+  for(let j=0;j<gNYY;j++){
+    map[j] = new Array(gNXX).fill(0);
+  }
+  // セット
+  for(let j=2;j<2+8;j++){
+    map[j][0] = 1;
+  }
+  for(let i=0;i<gXXX;i+=2){
+    map[0][i] = 8;
+    map[10][i] = 8;
+    map[12][i] = 8;
+    map[14][i] = 8;
+  }
+  for(let j=2;j<2+10;j+=2){
+    map[j][gNXX-1] = 8;
+  }
+}
+
+function map1(ctx){
+  yuka(ctx, 3, 12, 11);
+  yuka(ctx, 14, 10, 2);
+  hashigo(ctx, 2, 12, 3);
+}
+function map2(ctx){
+  yuka(ctx, 0, 10, 15);
+}
+
+function hashigo(ctx, xx, yy, hh){
+  for(let i=yy;i<(yy+hh);i++){
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(32*xx,32*i,32,32);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(32*xx+1,32*i+2,32-2,4);
+    ctx.fillRect(32*xx+1,32*i+18,32-2,4);
+  }
+}
+
+function yuka(ctx, xx, yy, ww){
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(32*xx,32*yy,32*ww,32);
+  ctx.fillStyle = "#CCCCCC";
+  ctx.fillRect(32*xx,32*yy,32*ww,6);
+  ctx.fillRect(32*xx,32*yy+32-6,32*ww,6);
+  ctx.fillStyle = "#CCCC44";
+  for(let i=32*xx;i<32*(xx+ww);i=i+6){ 
+    ctx.fillRect(i+2,32*yy+10,4,32-20);
+  }
+}
+
+function drawHPBAR(ctx){
+  let t = Math.floor(tt/10);
+  drawGAGE(ctx,48,48,28-(t%24),"#CCCC00");
+  //drawGAGE(ctx,32,48,26,"#00CCCC");
+  // Enemy
+  //drawGAGE(ctx,80,48,28,"#CC0000");
+  return;
+}
+function drawGAGE(ctx,xx,yy,hp,cl){
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(xx,yy,16,16*7);
+  ctx.fillStyle = cl;
+  for(let j=0;j<hp;j++){
+    let y = yy+16*7-4-4*j;
+    ctx.fillRect(xx+2,y,16-4,2);
+  }
+}
+
+
+// 関数ポインタ（？）の使いどころ
+function mapdraw(ctx, i, j){
+  let v = map[j][i];
+  let [xx,yy] = [gMMM*i,gMMM*j];
+  //DBG//console.log("v="+v);
+  if(v==0){return;}
+  if(v==1){return mdraw1(ctx,xx,yy);}
+  if(v==8){return mdraw8(ctx,xx,yy);}
+  ctx.fillStyle = "#FF0000";
+  ctx.fillRect(xx,yy,gMMM,gMMM);
+}
+
+// 32x32 (シャッター)
+function mdraw1(ctx,xx,yy){
+  ctx.fillStyle = "#8888CC"; // 白め 
+  ctx.fillRect(xx+4,yy,          8,gMMM);  
+  ctx.fillRect(xx+(gMMM/2)+4,yy, 8,gMMM);
+  ctx.fillStyle = "#444488"; // 青め
+  ctx.fillRect(xx+8,yy,          4,gMMM);  
+  ctx.fillRect(xx+(gMMM/2)+8,yy, 4,gMMM);
+  // 黒
+  ctx.fillStyle = "#000000";
+  // 縦線
+  ctx.fillRect(xx,yy,4,gMMM);
+  ctx.fillRect(xx+(gMMM/2)-4,yy, 4,gMMM);
+  ctx.fillRect(xx+(gMMM/2),yy, 4,gMMM);
+  ctx.fillRect(xx+gMMM-4,yy,4,gMMM);
+  // 横線
+  ctx.fillRect(xx,yy+(gMMM/2)-4,gMMM,4);
+  ctx.fillRect(xx,yy+gMMM-4,gMMM,4);
+}
+
+// 64x64
+function mdraw8(ctx,xx,yy){
+  let mm = gMMM*2;
+  ctx.fillStyle = "#888888"; // 灰
+  ctx.fillRect(xx,yy,mm,mm);
+  ctx.fillStyle = "#000000"; // 黒
+  ctx.fillRect(xx,yy,1,mm);
+  ctx.fillRect(xx+mm-1,yy,1,mm);
+  ctx.fillRect(xx,yy,mm,1);
+  ctx.fillRect(xx,yy+mm-1,mm,1);
+}
+
+function ldraw(ctx){
+  ctx.fillStyle = "#0000FF"; // DBG
+  for(let j=0;j<gNYY;j++){
+  for(let i=0;i<gNXX;i++){
+    let [xx,yy] = [gMMM*i,gMMM*j];
+    ctx.fillRect(xx+gMMM-1,yy,1,gMMM);
+    ctx.fillRect(xx,yy+gMMM-1,gMMM,1);
+  }}
+
+}
+
+</script>
+</body>
+</html>

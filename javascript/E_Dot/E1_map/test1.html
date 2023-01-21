@@ -1,0 +1,233 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+<script src="map.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gMMM = 32;
+var gNXX = 16;
+var gNYY = 15;
+var gXXX = gMMM*gNXX;
+var gYYY = gMMM*gNYY;
+var gimg = [];
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // 絵読み込み (本来は読み込み完了を待つべき)
+  gimg[0] = new Image();
+  gimg[0].src = "map0.bmp";
+  mapInit();
+  drawInit();
+  // 無限ループする
+  infiniteloop(ctx);
+}
+function infiniteloop(ctx){
+  // コントローラを使う（ちょっとクセ強クラス実装でごめんなさい）
+  let con = new contrclass(null);
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx,con);
+}
+
+var sts=2;
+var tt=0;
+function mainloop(ctx,con){
+  tt++;
+  // 前景の計算
+  charmove(con);
+  //マップ設定
+  mapreset();
+  let mapi = [mapInit1,mapInit2,mapInit3];
+  mapi[sts]();
+  // 背景
+  ctx.fillStyle = "#CCCCFF"; // 青っぽい
+  ctx.fillRect(0,0,gXXX,gYYY);
+  // 描く
+  for(let j=0;j<gNYY;j++){
+  for(let i=0;i<gNXX;i++){
+    mapdraw(ctx, i, j);
+  }}
+  // 前景の描画
+  let n = Math.floor(tt/(5)); // 5フレームで１つ絵を変える
+  chardraw(ctx, n%4); // ４つで１セット
+}
+
+// ＜床が無ければ落ちる、床があれば留まる処理＞
+// ！！ 入力がキャラの左上の点であることに注意
+// 重力とかジャンプ系をこちらに持ってきた
+var ymap = [];
+function yukaInit(){
+  for(let j=0;j<gNYY;j++){
+    ymap[j] = new Array(gNXX).fill(0);
+  }
+}
+function yukareset(){
+  for(let j=0;j<gNYY;j++){
+  for(let i=0;i<gNXX;i++){
+    ymap[j][i]=0;
+  }}
+}
+function yuka1(){
+  for(let i=0;i<gNXX;i++){
+    ymap[10][i] = 1;
+  }
+}
+function yuka2(){
+  for(let i=0;i<gNXX;i++){
+    ymap[12][i] = 1;
+  }
+  for(let i=gNXX-2;i<gNXX;i++){
+    ymap[10][i] = 1;
+  }
+}
+
+function mapdown(xx,yy,ly){
+  // 上昇時は落下の危険性なし。「early return」
+  if(yy < 0 || ly < 0){
+    my += ggg;
+    my = (-jjj < my) ? -jjj : my; // 落下速度遅くなりすぎない
+    return yy+ly;
+  }
+  // ０のとき、落下の危険性があるかを判定
+  let csz = dsz; // キャラのサイズ
+  let msz = gMMM;
+  let x = Math.floor((xx+(csz/2))/msz); // 中心の点をX
+  let s = Math.floor((yy+csz)/msz); // 足元のY座標：キャラの上部からサイズを足す
+  let e = Math.floor((yy+csz+ly)/msz); // 落下予定のY座標：さらに落下距離足す
+  // 床があるかどうか
+  for(let i=s;i<=e;i++){
+    if(ymap[i][x]!=0){
+      if(jumpsts==1){jumpsts = 0;} // 飛んでないことにする
+      my = 0; // 念のため０にする
+      //DBG//console.log("md2");
+      return i*msz-csz; // 床から計算したキャラの上の座標を渡す
+    }
+  }
+  jumpsts = 1; // （落下しているので）ジャンプはできない
+  my += ggg; // 重力
+  my = (-jjj < my) ? -jjj : my; // 落下速度遅くなりすぎない
+  return yy+ly;
+}
+
+/****************************************************
+ * 前景
+ * *************************************************/
+// 前景の位置
+var dsz = 60; // 描画するサイズ
+// 上昇時重力無ければ、15,1.5 当たりがいい感じな・・
+//var aaajjj = 1.3;
+//var [jjj,ggg] = [-20*aaajjj,+3*aaajjj];//[-25,+5]; // ジャンプ力、重力
+var [jjj,ggg] = [-26,+4];
+var [ox,oy] = [64,64]; // グローバル ＆ 初期値
+var jumpsts = 0; // 0:ジャンプしてない、＋：ジャンプしている
+var my = 0; // Y方向への影響
+var mx = 0; // x方向への影響
+var jwait = 0;
+var jwaitbase = 3;
+var dmgwait = 0;
+var charHP = 7; // HP=28
+var charSP = 6;//6;
+var charBreak = 8;// SP/3 = 2
+var TPower = 28;
+var md = 0; // 向き
+var mthunder = 0;
+var mtpos = [0,0,0];
+function charmove(con){
+  // コントローラからキーもらう(pはボタン(0-3に限定)、mは方向キー)
+  let [p,m] = con.getPushedKey();
+  if(jumpsts==0 && jwait > 0){jwait--;}
+  //ジャンプ処理
+  else if(jumpsts==0 && p==0){ // ジャンプする
+    //console.log("Jump: 0 -> 2");
+    jumpsts = 2; // 2に定義しておく
+    my = jjj;//-Math.abs(1*m[0]); // とりあえずジャンプ力
+    jwait = jwaitbase; // 連続ジャンプは待って
+  }
+
+  if(mthunder > 0){mthunder--;}
+  if(mthunder<=0 && p==1){
+    console.log("Thunder!");
+    mthunder = 15;
+    TPower--;
+    let mtd = (m[0]!=0)? m[0] : md;
+    mtpos = [ox+dsz/2,oy,mtd];
+  }
+
+  if(jumpsts==2){
+    //console.log("Jumping");
+    if(p!=0 || my > 0){ // ボタンを離したら、もしくは下降したら
+      jumpsts = 1; // 落下
+      if(my < 0){my = 0;}
+    }
+  }
+  // 移動
+  let sp=charSP; // 横移動のスピード
+  mx = sp*m[0];
+
+  if(jumpsts==0){mx = sp*m[0];}
+  else{
+    mx += (charBreak)*m[0]; // charSPよりは弱く、ブレーキは効く
+    let cp = charSP+2;
+    if(mx < -cp){mx=-cp;}
+    if(mx > +cp){mx=+cp;}
+  }
+  //向き
+  md = (m[0]!=0)? m[0] : md;
+  // X方向
+  ox = ox + mx;
+  //端に行けないようにする
+  let ss = 32;
+  if(ox < ss){ox=ss;}
+  if(ox > gXXX-ss-dsz){ox=gXXX-ss-dsz;}
+  // Y方向
+  oy = mapdown(ox,oy,my); // myの更新、この関数に任せる
+}
+
+// 前景
+function chardraw(ctx,n){
+  let psz = 200; // 画像のサイズが200x200
+  let ix = (n==3)? 1:n;
+  let iy = (jumpsts!=0)?2:0;
+  /* if(dmgwait%4 > 1){
+    // 表示しない
+  }else{
+    ctx.drawImage(gImg, psz*ix,psz*iy,psz,psz, ox,oy,dsz,dsz);
+  }*/
+  if(dmgwait%4 > 1){
+    return; // early return
+  }
+  if(md == -1){
+    /* ！！この方法はおススメしません。逆向きの画像を用意しておく方が賢い */
+    ctx.save(); // Saveする
+    ctx.scale(-1, 1); // 左右反転にする（１）
+    ctx.translate(-gXXX,0); // 左右反転にする（２）
+    ctx.drawImage(gImg,
+    psz*ix,psz*iy,psz,psz, /* 元の絵 の どこを参照する */
+    gXXX-ox,oy,-dsz,dsz); /* 左右反転にする（３） */
+    ctx.restore(); // Saveにもどる：translateを無かったことにする
+  }else{
+    ctx.drawImage(gImg,
+    psz*ix,psz*iy,psz,psz, /* 元の絵 の どこを参照する */
+    ox,oy,dsz,dsz); /* Canvasのどこに描くか */
+  }
+  //DEBUG
+  let mm = 5;
+  ctx.fillStyle = "#00FF00"; // 緑
+  ctx.fillRect(ox+(dsz/2)-mm,oy+dsz-mm,2*mm,2*mm);
+}
+
+// 画像の読み込み
+var gImg = ""; // グローバル
+function drawInit(){
+  gImg = new Image();
+  gImg.src = "pict.png";
+}
+
+</script>
+</body>
+</html>

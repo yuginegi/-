@@ -1,0 +1,123 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gMMM = 32;
+var gNXX = 16;
+var gNYY = 15;
+var gXXX = gMMM*gNXX;
+var gYYY = gMMM*gNYY;
+var gimg = [];
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // 絵読み込み (本来は読み込み完了を待つべき)
+  gimg[0] = new Image();
+  gimg[0].src = "map0.bmp";
+  mapInit();
+  // 無限ループする
+  infiniteloop(ctx);
+}
+function infiniteloop(ctx){
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx);
+}
+
+var sts=0;
+var tt=0;
+function mainloop(ctx){
+  tt++;
+  if(tt%90==0){
+    sts = (sts+1)%2;
+  }
+  //マップ設定
+  mapreset();
+  let mapi = [mapInit1,mapInit2];
+  mapi[sts]();
+  // 背景
+  ctx.fillStyle = "#CCCCFF"; // 青っぽい
+  ctx.fillRect(0,0,gXXX,gYYY);
+  // 描く
+  for(let j=0;j<gNYY;j++){
+  for(let i=0;i<gNXX;i++){
+    mapdraw(ctx, i, j);
+  }}
+}
+
+function mapdraw(ctx, i, j){
+  let v = map[j][i];
+  if(v <= 0){return;}
+  let [ix,iy] = [(v-1)%4, Math.floor((v-1)/4)];
+  let [ax,ay] = [gMMM*ix,gMMM*iy];
+  let [xx,yy] = [gMMM*i,gMMM*j];
+  ctx.drawImage(gimg[0],ax,ay,gMMM,gMMM,xx,yy,gMMM,gMMM);
+}
+
+var map = []; // Y,X
+function mapInit(){
+  for(let j=0;j<gNYY;j++){
+    map[j] = new Array(gNXX).fill(0);
+  }
+}
+function mapreset(){
+  for(let j=0;j<gNYY;j++){
+  for(let i=0;i<gNXX;i++){
+    map[j][i]=0;
+  }}
+}
+function mapInit1(n){
+  mapset4(3,0,0,16,1);
+  for(let j=5;j<8;j++){
+    mapset4(3,0,j*2,16,1);
+  }
+  mapset4(3,15,2,1,10);
+  mapset(0,0,2,1,8);
+  mapset(9,0,2,1,(Math.floor(tt/2))%9);
+  mapset2(13,3,0,10,15,1); // 難しい
+}
+
+function mapInit2(n){
+  mapset4(3,0,0,16,6);
+  mapset4(3,0,12,16,3);
+  mapset4(3,14,10,2,2);
+  mapset4(3,0,2,1,10);
+
+  mapset2(13,3,2,12,12,1); // 難しい
+  mapset2(13,3,14,10,2,1); // 難しい
+  mapset(6,2,12,1,3);
+}
+//=========================================================
+
+function sm(v,j,i){
+  if(map[j] && map[j][i] >=0){map[j][i]=v;}
+}
+function mapset4(v,x,y,w,h){
+  for(let j=y;j<(y+h);j+=2){
+  for(let i=x;i<(x+w);i+=2){
+    sm(v,j,i);
+    sm(v+1,j,i+1);
+    sm(v+4,j+1,i);
+    sm(v+5,j+1,i+1);
+  }}
+}
+function mapset(v,x,y,w,h){
+  for(let j=y;j<(y+h);j++){
+  for(let i=x;i<(x+w);i++){
+    map[j][i] = v;
+  }}
+}
+function mapset2(v,vv,x,y,w,h){
+  for(let j=y;j<(y+h);j++){
+  for(let i=x;i<(x+w);i++){
+    map[j][i] = v+((i+j+tt)%vv);
+  }}
+}
+</script>
+</body>
+</html>
