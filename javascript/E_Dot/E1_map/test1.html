@@ -96,12 +96,16 @@ function mapdown(xx,yy,ly){
   // ０のとき、落下の危険性があるかを判定
   let csz = dsz; // キャラのサイズ
   let msz = gMMM;
-  let x = Math.floor((xx+(csz/2))/msz); // 中心の点をX
+  
+  let mx = charMX;
+  let x1 = Math.floor((xx+(csz/2)-mx)/msz); // 中心の点をX
+  let x2 = Math.floor((xx+(csz/2)+mx)/msz); // 中心の点をX
+
   let s = Math.floor((yy+csz)/msz); // 足元のY座標：キャラの上部からサイズを足す
   let e = Math.floor((yy+csz+ly)/msz); // 落下予定のY座標：さらに落下距離足す
   // 床があるかどうか
   for(let i=s;i<=e;i++){
-    if(ymap[i][x]!=0){
+    if(ymap[i][x1]!=0 || ymap[i][x2]!=0){
       if(jumpsts==1){jumpsts = 0;} // 飛んでないことにする
       my = 0; // 念のため０にする
       //DBG//console.log("md2");
@@ -133,6 +137,7 @@ var dmgwait = 0;
 var charHP = 7; // HP=28
 var charSP = 6;//6;
 var charBreak = 8;// SP/3 = 2
+var charMX = 16;
 var TPower = 28;
 var md = 0; // 向き
 var mthunder = 0;
@@ -216,9 +221,10 @@ function chardraw(ctx,n){
     ox,oy,dsz,dsz); /* Canvasのどこに描くか */
   }
   //DEBUG
-  let mm = 5;
+  let mm = 2;
+  let mx = charMX;
   ctx.fillStyle = "#00FF00"; // 緑
-  ctx.fillRect(ox+(dsz/2)-mm,oy+dsz-mm,2*mm,2*mm);
+  ctx.fillRect(ox+(dsz/2)-mx,oy+dsz-mm,2*mx,2*mm);
 }
 
 // 画像の読み込み
