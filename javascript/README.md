@@ -6,6 +6,8 @@
 
 - 対象としての条件は以下かも。（敷居が高い・・。）
     - HTMLのソースわかる、書ける
+    - IF文、FORループとか、関数がわかる
+    - コメント「//」とか「/* */」とかわかる
 - 基礎的なところはとほほさんのところを見てもらう
     - https://www.tohoho-web.com/html/memo/elem.htm
     - https://www.tohoho-web.com/html/canvas.htm
