@@ -1,0 +1,123 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+<script src="cont.js"></script>
+<script src="map.js"></script>
+<script src="chara.js"></script>
+<script src="enemy.js"></script>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+//var gXXX = 400;
+//var gYYY = 400;
+var gMMM = 32;
+var gNXX = 16;
+var gNYY = 15;
+var gXXX = gMMM*gNXX;
+var gYYY = gMMM*gNYY;
+
+var gcvs;
+var gctx;
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+
+  gcvs = screenCanvas;
+  gctx = ctx;
+  let vvv = 1.5
+  let mvx = vvv*gXXX;//(ww - vvv*gXXX)/2;
+  let mvy = vvv*gYYY;//(hh - vvv*gYYY)/2;
+  screenCanvas.width  = mvx;
+  screenCanvas.height = mvy;
+  ctx.setTransform(vvv, 0, 0, vvv, 0, 0);
+
+  // 無限ループする
+  infiniteloop(ctx);
+}
+function infiniteloop(ctx){
+  // ★絶対必要★ 画像ファイルを読み込む！！
+  drawInit();
+  mapInit();
+  yukaInit();
+  let yd = new ydClass(ctx);
+  // コントローラを使う（ちょっとクセ強クラス実装でごめんなさい）
+  let con = new contrclass(null);
+
+  // 30FPSで無限ループするための「setInterval」 
+  setInterval(mainloop, 1000/30, ctx,con,yd);
+}
+
+var tt = 0; // 時間 
+function mainloop(ctx,con,yd){
+  // ループの中断条件として
+  if(charHP <= 0){
+    ctx.fillStyle = "#0000FF";
+    ctx.font = "60px 'ＭＳ ゴシック'";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("GAME OVER",gXXX/2,gYYY/2);
+    return; // mainloopはこれ以上進まない
+  }
+  if(bossHP <= 0){
+    ctx.fillStyle = "#0000FF";
+    ctx.font = "60px 'ＭＳ ゴシック'";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("GAME CLEAR",gXXX/2,gYYY/2);
+    return; // mainloopはこれ以上進まない
+  }
+  // 時間経過
+  tt++;
+
+  // 背景 ◇ 今回は固定にします → 黒一色
+  //backdraw(ctx,0);
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0,0,gXXX,gYYY);
+  // MAPを描く（背景）
+  for(let j=0;j<gNYY;j++){
+  for(let i=0;i<gNXX;i++){
+    mapdraw(ctx, i, j);
+  }}
+  // 特別に床を描く（背景）
+  yukadraw(ctx);
+
+  // 敵
+  yd.move();
+  yd.draw();
+  // 当たり判定(キャラがダメージ受ける)
+  yd.hit(ox,oy,dsz);
+
+  // 前景の計算
+  charmove(con);
+  // 前景の描画
+  let n = Math.floor(tt/(5)); // 5フレームで１つ絵を変える
+  chardraw(ctx, n%4); // ４つで１セット
+  // Thunder(敵がダメージ受ける)
+  thunderExec(ctx,yd);
+
+  //HP ゲージ
+  drawHPBAR(ctx);
+}
+
+// 画像の読み込み
+var gImg = ""; // グローバル
+var gBackImg = ""; // グローバル
+var gBoss = [];
+function drawInit(){
+  gImg = new Image();
+  gImg.src = "pict.png";
+  gBackImg = new Image();
+  gBackImg.src = "back.png";
+  gBoss[0] = new Image();
+  gBoss[0].src = "ydv.png";
+  gBoss[1] = new Image();
+  gBoss[1].src = "ydvr.png";
+}
+
+</script>
+</body>
+</html>
