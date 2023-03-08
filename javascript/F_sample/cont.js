@@ -77,7 +77,7 @@ class contrclass{
     // キーボードの左右とZXをもらう
     mv = this.kfunc(1);
     let p = this.kfunc(2); // zは1、xは2。押してないとき０
-    Pressed = (p==1)? 0 : -1; // z ならジャンプとする
+    Pressed = (p<=0)? -1 : p-1;
     // ゲームキーが来るなら上書き
     let arg = this.getcont();
     if(arg == null){
