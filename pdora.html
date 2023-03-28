@@ -219,6 +219,8 @@ class drop{
     let [x,y,ll,cl] = [this.ix, this.iy, this.ll, this.cl];
     if(this.ee){
       drawdrop(ctx,"#FFFFFF",x*ll,y*ll,ll,ll);
+      let mg = 10;
+      drawdrop(ctx,cl,x*ll+mg,y*ll+mg,ll-(2*mg),ll-(2*mg));
       return;
     }
     if(this.sp){
