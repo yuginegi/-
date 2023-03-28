@@ -20,20 +20,48 @@ window.onload = function(){
   setInterval(mainloop, 1000/30, ctx, dlist);
 }
 
+var gstatus = 0;
+var movefunc = [state0,state1,state2,state3];
 function mainloop(ctx,dlist){
   // Move action
-  let [x,y] = mousepos;
-  if(x<0 || y<0 || 300<=x || 250<=y){
-    dlist.release();
-  }else{
-    dlist.grasp(x,y);
-  }
+  movefunc[gstatus](dlist);
   // Background
   ctx.clearRect(0, 0, gXXX, gYYY);
   ctx.fillStyle="#000000";
   ctx.fillRect(0, 0, 300, 250);
   // Draw
   dlist.draw(ctx);
+}
+
+// move wait
+function state0(dlist){
+  let [x,y] = mousepos;
+  if(x<0 || y<0 || 300<=x || 250<=y){
+  }else{
+    dlist.grasp(x,y);
+    console.log("State: 0 -> 1");
+    gstatus++;
+  }
+}
+// drop move
+function state1(dlist){
+  let [x,y] = mousepos;
+  if(x<0 || y<0 || 300<=x || 250<=y){
+    dlist.release();
+    console.log("State: 1 -> 2");
+    gstatus++;
+  }else{
+    dlist.grasp(x,y);
+  }
+}
+// drop erace => Now, change color=white
+function state2(dlist){
+  dlist.eracesearch();
+  console.log("State: 2 -> 3");
+  gstatus++;
+}
+// zzz
+function state3(dlist){
 }
 
 var mousepos=[-1,-1];
@@ -111,6 +139,65 @@ class droplist{
     }
     return -1;
   }
+//=== From here, it should reconsider better code ===
+  eracesearch(){
+    // create 5x6 array
+    var arr = new Array(5);
+    for(var b = 0; b < 5; b++) {
+      arr[b] = new Array(6);
+      for(var a = 0; a < 6; a++) {
+        arr[b][a] = 0;
+      }
+    }
+    // set arr
+    for(let i=0;i<30;i++){
+      let [ix,iy] = this.dlist[i].getP();
+      arr[iy][ix] = i;
+    }
+    // arr search hori
+    for(var b = 0; b < 5; b++) {
+    for(var a = 0; a < 6; a++) {
+      {
+        let n = this.www(arr,b,a+1,arr[b][a],1);
+        if(n>=3){
+          for(let i=0;i<n;i++){
+            //console.log("www:"+[a+i,b]);
+            let ii = arr[b][a+i];
+            this.dlist[ii].ee = 1;
+          }
+        }
+      }
+      {
+        let n = this.hhh(arr,b+1,a,arr[b][a],1);
+        if(n>=3){
+          for(let i=0;i<n;i++){
+            //console.log("hhh:"+[a,b+i]);
+            let ii = arr[b+i][a];
+            this.dlist[ii].ee = 1;
+          }
+        }
+      }
+    }}
+  }
+  www(arr,b,a,c,n){
+    if(a >= 6){return n;}
+    if(b >= 5){return n;}
+    let ii = arr[b][a];
+    if(this.dlist[c].cl == this.dlist[ii].cl){
+      return this.www(arr,b,a+1,c,n+1);
+    }
+    return n;
+  }
+  hhh(arr,b,a,c,n){
+    if(a >= 6){return n;}
+    if(b >= 5){return n;}
+    let ii = arr[b][a];
+    if(this.dlist[c].cl == this.dlist[ii].cl){
+      return this.hhh(arr,b+1,a,c,n+1);
+    }
+    return n;
+  }
+//=== To here, it should reconsider better code ===
 }
 
 class drop{
@@ -130,6 +217,10 @@ class drop{
   }
   draw(ctx){
     let [x,y,ll,cl] = [this.ix, this.iy, this.ll, this.cl];
+    if(this.ee){
+      drawdrop(ctx,"#FFFFFF",x*ll,y*ll,ll,ll);
+      return;
+    }
     if(this.sp){
       //ctx.fillStyle = "#000000";
       //ctx.fillRect(x*ll,y*ll,ll,ll);
