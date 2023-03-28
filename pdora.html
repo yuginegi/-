@@ -28,6 +28,10 @@ function mainloop(ctx,dlist){
   }else{
     dlist.grasp(x,y);
   }
+  // Background
+  ctx.clearRect(0, 0, gXXX, gYYY);
+  ctx.fillStyle="#000000";
+  ctx.fillRect(0, 0, 300, 250);
   // Draw
   dlist.draw(ctx);
 }
@@ -68,6 +72,9 @@ class droplist{
   draw(ctx){
     for(let i=0;i<30;i++){
       this.dlist[i].draw(ctx);
+    }
+    if(this.target!=-1){
+      this.dlist[this.target].drawsp(ctx);
     }
   }
   release(){
@@ -124,15 +131,21 @@ class drop{
   draw(ctx){
     let [x,y,ll,cl] = [this.ix, this.iy, this.ll, this.cl];
     if(this.sp){
-      let mg = 2;
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(x*ll,y*ll,ll,ll);
-      ctx.fillStyle = cl;
-      ctx.fillRect(x*ll+mg,y*ll+mg,ll-2*mg,ll-2*mg);      
+      //ctx.fillStyle = "#000000";
+      //ctx.fillRect(x*ll,y*ll,ll,ll);
+      drawdrop(ctx,"#000000",x*ll,y*ll,ll,ll);
     }else{
-      ctx.fillStyle = cl;
-      ctx.fillRect(x*ll,y*ll,ll,ll);
+      //ctx.fillStyle = cl;
+      //ctx.fillRect(x*ll,y*ll,ll,ll);
+      drawdrop(ctx,cl,x*ll,y*ll,ll,ll);
     }
+  }
+  drawsp(ctx){
+    let [ll,cl] = [this.ll, this.cl];
+    let [mx,my] = mousepos;
+    //ctx.fillStyle = cl;
+    //ctx.fillRect(mx-ll/2,my-ll/2,ll,ll);
+    drawdrop(ctx,cl,mx-ll/2,my-ll/2,ll,ll);
   }
   isin(x0,y0){
     let [x,y,ll] = [this.ix, this.iy, this.ll];
@@ -141,6 +154,15 @@ class drop{
     }
     return 0;
   }
+}
+
+function drawdrop(ctx,cl,x,y,w,h){
+  ctx.beginPath();
+  ctx.fillStyle = cl;
+  //ctx.fillRect(x,y,w,h);
+  let r = (w+h-10)/2
+  ctx.arc( x+(w/2), y+(h/2), r/2, 0, Math.PI * 2, true);
+  ctx.fill();
 }
 
 </script>
