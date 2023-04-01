@@ -35,9 +35,8 @@ function mainloop(ctx,dlist){
 
 // move wait
 function state0(dlist){
-  let [x,y] = mousepos;
-  if(x<0 || y<0 || 300<=x || 250<=y){
-  }else{
+  if(mousepos){
+    let [x,y] = mousepos;
     dlist.grasp(x,y);
     console.log("State: 0 -> 1");
     gstatus++;
@@ -45,12 +44,12 @@ function state0(dlist){
 }
 // drop move
 function state1(dlist){
-  let [x,y] = mousepos;
-  if(x<0 || y<0 || 300<=x || 250<=y){
+  if(!mousepos){
     dlist.release();
     console.log("State: 1 -> 2");
     gstatus++;
   }else{
+    let [x,y] = mousepos;
     dlist.grasp(x,y);
   }
 }
@@ -64,15 +63,17 @@ function state2(dlist){
 function state3(dlist){
 }
 
-var mousepos=[-1,-1];
+var mousepos=null;//[-1,-1];
 function mouseeventfunc(e){
   let [x,y] = [e.clientX,e.clientY];
+  x = (x < 0) ? 0 : (x>=300)? 300-1 : x;
+  y = (y < 0) ? 0 : (y>=250)? 250-1 : y;
   //DBG//console.log("pos:"+e.type);
   if(e.type == "mouseup"){
-    mousepos=[-1,-1];
-  }else if(e.type == "mousedown" && mousepos[0]==-1){
+    mousepos=null;//[-1,-1];
+  }else if(e.type == "mousedown" && !mousepos){
     mousepos=[x,y];
-  }else if(e.type == "mousemove" && mousepos[0]!=-1){
+  }else if(e.type == "mousemove" && mousepos){
     mousepos=[x,y];
   }
 }
@@ -81,63 +82,67 @@ function addMouseEventListener(){
   window.addEventListener("mousemove", mouseeventfunc, false);
   window.addEventListener("mouseup",  mouseeventfunc, false);
 }
-
+//================================================================================
 class droplist{
   constructor(){
-    this.target = -1; // -1 is released.
+    this.target = null;// set drop
+    this.empty = -1;
     this.init();
   }
   init(){
-    this.dlist = [];
+    this.list = [];
     for(let i=0;i<30;i++){
       let x = (i%6);
       let y = Math.floor(i/6);
       let cl = ["#FF0000","#00FF00","#0000FF","#FFFF00","#FF00FF"];
       let c = cl[i%5];
-      this.dlist[i] = new drop(i,x,y,c);
+      this.list[i] = new drop(i,x,y,c);
     }
   }
   draw(ctx){
     for(let i=0;i<30;i++){
-      this.dlist[i].draw(ctx);
+      let x = (i%6);
+      let y = Math.floor(i/6);
+      if(this.list[i]){
+        this.list[i].draw(ctx,x,y);
+      }
     }
-    if(this.target!=-1){
-      this.dlist[this.target].drawsp(ctx);
+    if(this.target){
+      this.target.drawsp(ctx);
     }
   }
   release(){
     // mouseup
-    if(this.target==-1){return;}
-    this.dlist[this.target].sp = 0;
-    this.target = -1;
+    if(!this.target){return;}
+    this.target.sp = 0;
+    this.list[this.empty] = this.target;
+    this.target = null;
+    this.empty = -1;
   }
   grasp(x,y){
     // mousedown
-    if(this.target==-1){
+    if(!this.target){
       let i = this.search(x,y);
-      if(i<0){
-        console.log("Unexpected flow.")
-        return;
-      }
-      this.dlist[i].sp = 1;
-      this.target = i;
+      this.target = this.list[i];
+      this.target.sp = 1;
+      this.list[i] = null;
+      this.empty = i;
       return;
     }
     // mousemove
-    let i = this.target;
     let s = this.search(x,y);
-    if(i!=s){
-      let tmp = this.dlist[i].getP();
-      this.dlist[i].setP(this.dlist[s].getP());
-      this.dlist[s].setP(tmp);
+    if(this.empty!=s){
+      this.list[this.empty] = this.list[s];
+      this.list[s] = null;
+      this.empty = s;
     }
   }
   search(x,y){
-    for(let i=0;i<30;i++){
-      let r = this.dlist[i].isin(x,y);
-      if(r){return i;}
-    }
-    return -1;
+    x = (x < 0) ? 0 : (x>=300)? 300-1 : x;
+    y = (y < 0) ? 0 : (y>=250)? 250-1 : y;
+    let ix = Math.floor(x/50);
+    let iy = Math.floor(y/50);
+    return iy*6 + ix;
   }
 //=== From here, it should reconsider better code ===
   eracesearch(){
@@ -151,7 +156,9 @@ class droplist{
     }
     // set arr
     for(let i=0;i<30;i++){
-      let [ix,iy] = this.dlist[i].getP();
+      //let [ix,iy] = this.list[i].getP();
+      let ix = (i%6);
+      let iy = Math.floor(i/6);
       arr[iy][ix] = i;
     }
     // arr search hori
@@ -163,7 +170,7 @@ class droplist{
           for(let i=0;i<n;i++){
             //console.log("www:"+[a+i,b]);
             let ii = arr[b][a+i];
-            this.dlist[ii].ee = 1;
+            this.list[ii].ee = 1;
           }
         }
       }
@@ -173,7 +180,7 @@ class droplist{
           for(let i=0;i<n;i++){
             //console.log("hhh:"+[a,b+i]);
             let ii = arr[b+i][a];
-            this.dlist[ii].ee = 1;
+            this.list[ii].ee = 1;
           }
         }
       }
@@ -183,7 +190,7 @@ class droplist{
     if(a >= 6){return n;}
     if(b >= 5){return n;}
     let ii = arr[b][a];
-    if(this.dlist[c].cl == this.dlist[ii].cl){
+    if(this.list[c].cl == this.list[ii].cl){
       return this.www(arr,b,a+1,c,n+1);
     }
     return n;
@@ -192,31 +199,23 @@ class droplist{
     if(a >= 6){return n;}
     if(b >= 5){return n;}
     let ii = arr[b][a];
-    if(this.dlist[c].cl == this.dlist[ii].cl){
+    if(this.list[c].cl == this.list[ii].cl){
       return this.hhh(arr,b+1,a,c,n+1);
     }
     return n;
   }
 //=== To here, it should reconsider better code ===
 }
-
+//================================================================================
 class drop{
   constructor(id,x,y,cl){
-    this.id = id; // id 
-    this.ix = x;  // index horizontal
-    this.iy = y;  // index vertical
     this.cl = cl; // color
     this.ll = 50;
     this.sp = 0;
   }
-  getP(){
-    return [this.ix,this.iy];
-  }
-  setP(arg){
-    [this.ix,this.iy] = arg;
-  }
-  draw(ctx){
-    let [x,y,ll,cl] = [this.ix, this.iy, this.ll, this.cl];
+
+  draw(ctx,x,y){
+    let [ll,cl] = [this.ll, this.cl];
     if(this.ee){
       drawdrop(ctx,"#FFFFFF",x*ll,y*ll,ll,ll);
       let mg = 10;
@@ -224,28 +223,15 @@ class drop{
       return;
     }
     if(this.sp){
-      //ctx.fillStyle = "#000000";
-      //ctx.fillRect(x*ll,y*ll,ll,ll);
       drawdrop(ctx,"#000000",x*ll,y*ll,ll,ll);
     }else{
-      //ctx.fillStyle = cl;
-      //ctx.fillRect(x*ll,y*ll,ll,ll);
       drawdrop(ctx,cl,x*ll,y*ll,ll,ll);
     }
   }
   drawsp(ctx){
     let [ll,cl] = [this.ll, this.cl];
     let [mx,my] = mousepos;
-    //ctx.fillStyle = cl;
-    //ctx.fillRect(mx-ll/2,my-ll/2,ll,ll);
     drawdrop(ctx,cl,mx-ll/2,my-ll/2,ll,ll);
-  }
-  isin(x0,y0){
-    let [x,y,ll] = [this.ix, this.iy, this.ll];
-    if(x*ll <= x0 && x0 < (x+1)*ll && y*ll <= y0 && y0 < (y+1)*ll ){
-      return 1;
-    }
-    return 0;
   }
 }
 
