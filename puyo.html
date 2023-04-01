@@ -24,23 +24,6 @@ function arrayReset(){
   }
 }
 
-var colorptn = ["","#FF0000","#00FF00","#0000FF"];
-function drawMath(v,x,y){
-  if(v == -1){
-    ctx.fillStyle = (gtime%6 < 3) ? "#000000" : "#FFFF00";
-    ctx.fillRect(x,y,gMathLen,gMathLen);
-  }
-  if(v <= 0 || colorptn.length <= v){return;}
-  ctx.fillStyle = colorptn[v];
-  ctx.fillRect(x,y,gMathLen,gMathLen);
-}
-
-function drawBack(x,y,w,h){
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(x,y,w,h);
-}
-
-
 function runProgram(){
 console.log("runProgram");
   can = document.getElementById("drawcanvas");
@@ -112,6 +95,9 @@ function stateControl(){
     gsts = 2;
   }
 }
+
+//================================================================================
+//=== ４ : search が肝。周辺の同じ色を探す ===
 function cleanup(){
   for(let i = 0; i < 6;i++){
   for(let j = 0;j < 12;j++){
@@ -120,20 +106,8 @@ function cleanup(){
   }}
 }
 
-//事前に計算できるけどなあ：再起するか
-function search(arr,v,i,j){
-  if(i < 0 || i >=6 || j < 0 || j>=12){return;}
-  if(array[j][i]!=v){return;}
-  for(let a of arr){
-    if(i==a[0] && j==a[1]){return;}
-  }
-  arr.push([i,j]);
-  search(arr,v,i-1,j);
-  search(arr,v,i+1,j);
-  search(arr,v,i,j-1);
-  search(arr,v,i,j+1);
-}
-
+//================================================================================
+//=== ３ : search が肝。周辺の同じ色を探す ===
 function updatearray(){
   let flag = 0;
   for(let i = 0; i < 6;i++){
@@ -153,63 +127,22 @@ function updatearray(){
   }}
   return flag;
 }
-
-function rpos(x,y){
-  if(x<0||6<=x){return;}
-  if(y<0||12<=y){return;}
-  if(array[y][x]!=0){return;}
-  ggg[1][0] = x;
-  ggg[1][1] = y;
-  return;
-} 
-
-var gpshtime = 0;
-function rotate(psh){
-  if(gpshtime-- > 0){return;}
-  if(psh == 0){return;}
-  let [x1,x2,y1,y2] = [ggg[0][0],ggg[1][0],ggg[0][1],ggg[1][1]];
-  let tt = 3;
-  if(x1+1==x2 && y1==y2){rpos(ggg[1][0]-1,ggg[1][1]+1);gpshtime=tt;return;}
-  if(x1==x2 && y1+1==y2){rpos(ggg[1][0]-1,ggg[1][1]-1);gpshtime=tt;return;}
-  if(x1-1==x2 && y1==y2){rpos(ggg[1][0]+1,ggg[1][1]-1);gpshtime=tt;return;}
-  if(x1==x2 && y1-1==y2){rpos(ggg[1][0]+1,ggg[1][1]+1);gpshtime=tt;return;}
-  console.log("Invalid flow");
+//事前に計算できるけどなあ：再起するか
+function search(arr,v,i,j){
+  if(i < 0 || i >=6 || j < 0 || j>=12){return;}
+  if(array[j][i]!=v){return;}
+  for(let a of arr){
+    if(i==a[0] && j==a[1]){return;}
+  }
+  arr.push([i,j]);
+  search(arr,v,i-1,j);
+  search(arr,v,i+1,j);
+  search(arr,v,i,j-1);
+  search(arr,v,i,j+1);
 }
 
-var ggg = [[0,0,0],[0,0,0]];
-function moveControl(){
-  let psh = kfunc(2);
-  rotate(psh);
-  let axe = kfunc(1);
-  //console.log("a:"+axe);
-  let backup = deepCopyA(ggg);
-  let flag = moveX(axe);
-  if(flag > 0){
-    ggg = deepCopyA(backup);//元に戻すの意味
-  }
-  // 地面に設置
-  if(flag == 2){
-    for(let i=0;i<2;i++){
-      let [x,y] = [ggg[i][0],ggg[i][1]];
-      array[y][x] = ggg[i][2];
-      ggg[i][2] = 0;
-    }
-    gsts = 2;
-  }
-}
-
-function dropX(x,y){
-  let v = array[y][x];
-  if(v == 0){return;}
-  //console.log("drop:"+[x,y,v]);
-  array[y][x] = 0;
-  for(let j = y; j < 12;j++){
-    if(array[j][x]!=0){break;}
-    y = j;
-  }
-  array[y][x] = v;
-}
-
+//================================================================================
+//=== ２ : 空中に浮いている奴は落とす ===
 function drop(x,y){
   let v = array[y][x];
   if(v == 0){return 0;}
@@ -220,8 +153,6 @@ function drop(x,y){
   }
   return 0;
 }
-
-
 function dropall(){
   let flag = 0;
   for(let i = 0; i < 6;i++){
@@ -231,6 +162,36 @@ function dropall(){
   return flag;
 }
 
+//================================================================================
+//=== 1 : ぷよまるを動かす 関係 ===
+
+// いどうするぷよまるの情報
+// rotate:０のほうが軸。なので、回転時は１のほうが動く
+var ggg = [[0,0,0],[0,0,0]];
+
+//回転できるようなら回転する
+function rpos(x,y){
+  if(x<0||6<=x){return;}
+  if(y<0||12<=y){return;}
+  if(array[y][x]!=0){return;}
+  ggg[1][0] = x;
+  ggg[1][1] = y;
+  return;
+} 
+var gpshtime = 0;
+function rotate(psh){
+  if(gpshtime-- > 0){return;}
+  if(psh == 0){return;}
+  let [x1,x2,y1,y2] = [ggg[0][0],ggg[1][0],ggg[0][1],ggg[1][1]];
+  let tt = 3; // 一度回転しようとしたら３フレームは待たせる
+  if(x1+1==x2 && y1==y2){rpos(ggg[1][0]-1,ggg[1][1]+1);gpshtime=tt;return;}
+  if(x1==x2 && y1+1==y2){rpos(ggg[1][0]-1,ggg[1][1]-1);gpshtime=tt;return;}
+  if(x1-1==x2 && y1==y2){rpos(ggg[1][0]+1,ggg[1][1]-1);gpshtime=tt;return;}
+  if(x1==x2 && y1-1==y2){rpos(ggg[1][0]+1,ggg[1][1]+1);gpshtime=tt;return;}
+  console.log("Invalid flow");
+}
+
+// ggg用バックアップ。元に戻れるように・・
 function deepCopyA(aaa){
   let out = [[0,0,0],[0,0,0]];
   for(let i=0;i<2;i++){
@@ -240,6 +201,31 @@ function deepCopyA(aaa){
   return out;
 }
 
+// 移動
+function moveControl(){
+  let psh = kfunc(2); // 回転するかどうか
+  rotate(psh); // 回転してみる
+  let axe = kfunc(1);
+  //console.log("a:"+axe);
+  let backup = deepCopyA(ggg); // バックアップ
+  let flag = moveX(axe); // 移動してみる
+  if(flag > 0){
+    ggg = deepCopyA(backup); // 元に戻すの意味（ロールバック）
+  }
+  // 地面に設置した場合
+  if(flag == 2){
+    for(let i=0;i<2;i++){
+      let [x,y] = [ggg[i][0],ggg[i][1]];
+      array[y][x] = ggg[i][2];
+      ggg[i][2] = 0;
+    }
+    gsts = 2;
+  }
+}
+
+// ０：動けた
+// １：動けない（１以上は、ロールバックしろ）
+// ２：動けない かつ 地面方向に動けない、地面に設置
 function moveX(axe){
   for(let i=0;i<2;i++){
     ggg[i][0] += axe[0];
@@ -259,8 +245,32 @@ console.log("aaa:"+[axe[1] , array[yy][xx]]);
       return 1;
     }
   }
+  return 0;
 }
-
+//================================================================================
+// 描画関係
+var colorptn = ["","#FF0000","#00FF00","#0000FF"];
+function drawCore(x,y,w,h){
+  ctx.beginPath();
+  let r = (w+h-10)/2
+  ctx.arc( x+(w/2), y+(h/2), r/2, 0, Math.PI * 2, true);
+  ctx.fill();
+}
+function drawMath(v,x,y){
+  if(v == -1){
+    ctx.fillStyle = (gtime%6 < 3) ? "#000000" : "#FFFF00";
+    //ctx.fillRect(x,y,gMathLen,gMathLen);
+    drawCore(x,y,gMathLen,gMathLen);
+  }
+  if(v <= 0 || colorptn.length <= v){return;}
+  ctx.fillStyle = colorptn[v];
+  //ctx.fillRect(x,y,gMathLen,gMathLen);
+  drawCore(x,y,gMathLen,gMathLen);
+}
+function drawBack(x,y,w,h){
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(x,y,w,h);
+}
 function drawMain(){
   let [sx,sy] = [110,10]; // 書き出し位置
 
@@ -283,7 +293,7 @@ function drawMain(){
     drawMath(v,x,y);
   }
 }
-
+//================================================================================
 //=== キーボード対応 ここから ======= 
 var kaxes = [0,0];
 var kpush = 0; // 0 を無効とする。1を基準に押された数字
@@ -293,7 +303,7 @@ function kstate(oo,aa){
   }else if(aa==2){
     kaxes[0] = +1*oo;
   }else if(aa==3){
-    kaxes[1] = -1*oo;
+    //kaxes[1] = -1*oo;//up無効
   }else if(aa==0){
     kaxes[1] = +1*oo;
   }else if(aa==10){
