@@ -20,8 +20,8 @@ window.onload = function(){
   setInterval(mainloop, 1000/30, ctx, dlist);
 }
 
-var gstatus = 0;
-var movefunc = [state0,state1,state2,state3];
+var gstatus = 6;//0;
+var movefunc = [state0,state1,state2,state3,state4,state5,state6,stateX];
 function mainloop(ctx,dlist){
   // Move action
   movefunc[gstatus](dlist);
@@ -55,12 +55,48 @@ function state1(dlist){
 }
 // drop erace => Now, change color=white
 function state2(dlist){
-  dlist.eracesearch();
+  let blr = dlist.eracesearch();
   console.log("State: 2 -> 3");
-  gstatus++;
+  if(blr == 0){ // なんも消えない
+    gstatus = 0;
+  }else{ // なんか消えた
+    gstatus++;
+  }
 }
 // zzz
 function state3(dlist){
+  //console.log(">> sss");
+  let r = dlist.sss();
+  //console.log("<< sss");
+  if(r==1){
+    gstatus++; // 消せた
+  }else if(r==-1){
+    gstatus += 2; //見つからない
+  }
+  //if(r==0){continue;}
+}
+function state4(dlist){
+  //console.log(">> ddd");
+  dlist.ddd();
+  //console.log("<< ddd");
+  gstatus--;
+}
+function state5(dlist){
+  let rtn = dlist.downall();
+  if(rtn == 1){
+    gstatus++;
+  }
+}
+function state6(dlist){
+  let rtn = dlist.setall();
+  if(rtn == -1){
+    gstatus = 2;
+  }else if(rtn == 1){
+    gstatus = 5; // state5
+  }
+}
+// zzz
+function stateX(dlist){
 }
 //================================================================================
 var mousepos=null;//[-1,-1];
@@ -87,17 +123,24 @@ class droplist{
   constructor(){
     this.target = null;// set drop
     this.empty = -1;
+    this.list = [];
     this.init();
+    this.wait = 0;
   }
   init(){
-    this.list = [];
     for(let i=0;i<30;i++){
-      let x = (i%6);
-      let y = Math.floor(i/6);
-      let cl = ["#FF0000","#00FF00","#0000FF","#FFFF00","#FF00FF"];
-      let c = cl[i%5];
-      this.list[i] = new drop(i,x,y,c);
+      this.createdrop(i);
     }
+  }
+  createdrop(i){
+    let x = (i%6);
+    let y = Math.floor(i/6);
+    //let cl = ["#FF0000","#00FF00","#0000FF","#FFFF00","#800080","#FF00FF"];
+    let [min,max] = [0,6];
+    let rr = Math.floor( Math.random() * (max + 1 - min) ) + min ;
+    //let c = cl[rr%max];
+    let c = rr%max;
+    this.list[i] = new drop(i,x,y,c);
   }
   draw(ctx){
     for(let i=0;i<30;i++){
@@ -132,8 +175,10 @@ class droplist{
     // mousemove
     let s = this.search(x,y);
     if(this.empty!=s){
-      this.list[this.empty] = this.list[s];
-      this.list[s] = null;
+      // [入れ替え]
+      //this.list[this.empty] = this.list[s];
+      //this.list[s] = null;
+      [this.list[this.empty],this.list[s]] = [this.list[s],null];
       this.empty = s;
     }
   }
@@ -144,23 +189,34 @@ class droplist{
     let iy = Math.floor(y/50);
     return iy*6 + ix;
   }
-//=== From here, it should reconsider better code ===
+//=== 2 ===
   eracesearch(){
+    let rtn = 0;
     // arr search horizontal 
-    this.eracesearchcore(1);
+    rtn += this.eracesearchcore(1);
     // arr search vertical
-    this.eracesearchcore(6);
+    rtn += this.eracesearchcore(6);
+    return rtn;
   }
   eracesearchcore(up){
+    let flag = 0;
     for(var i=0;i<30;i++) {
       let n = this.nnn(i,up,this.list[i].cl,1);
       //console.log("nnn="+[i,n]);
+      // どーすればいいか・・・
       if(n>=3){
+        flag++;
         for(let j=0;j<n;j++){
           this.list[i+up*j].ee = 1;
+          if(up==1){
+            this.list[i+up*j].ex = n;
+          }else{
+            this.list[i+up*j].ey = n;
+          }
         }
       }
     }
+    return flag;
   }
   nnn(i,up,c,n){ // up=1,6
     //console.log("nnn:"+[i,up,c,n]);
@@ -171,6 +227,105 @@ class droplist{
     }
     return this.nnn(i+up,up,c,n+1);
   }
+//=== 3 ===
+  // 仕様わからん。上から探そ。。困ったときの再起 
+  // バグっとる。下と右しか探さないから。⇒ 左と上も探す
+  // 隣接していて同じ色なら一緒に消すはず。戻ってこないように２を自分にセット
+  sss(){
+    if(this.wait > 0){
+      this.wait--;
+      if(this.wait==0){
+        return 1;
+      }
+      return 0;
+    }
+    for(let i=0;i<30;i++){
+      if(this.list[i].ee == 1){
+        let c = this.list[i].cl;
+        this.list[i].ee = 2;//再突入防止
+        this.ssshori(i,c,1);//hori
+        this.ssshori(i,c,6);//vert
+        this.ssshori(i,c,-1);//hori
+        this.ssshori(i,c,-6);//vert
+        this.wait = 10;
+        return 0;
+      }
+    }
+    return -1; // 一個も見つからない
+  }
+  ssshori(i,c,up){
+    let ii = i+up;
+    if(up>0){
+      if(up!=1 && ii >= 30){return;} // For vertical
+      if(up==1 && i%6 == 5){return;} // For horizontal
+    }else{
+      if(up!=-1 && ii < 0){return;} // For vertical
+      if(up==-1 && i%6 == 0){return;} // For horizontal
+    }
+    if(this.list[ii].ee != 1){return;} // only 1 is target
+    if(c != this.list[ii].cl){ // different color
+      return;
+    }
+    this.list[ii].ee = 2;//再突入防止
+    this.ssshori(ii,c,1);//hori
+    this.ssshori(ii,c,6);//vert
+    this.ssshori(ii,c,-1);//hori
+    this.ssshori(ii,c,-6);//vert
+  }
+  //=== 4:消すやつ取り除く ===
+  ddd(){
+    for(let i=0;i<30;i++){
+      if(this.list[i].ee == 2){
+        this.list[i].ee = 3; // ２：消える対象 ⇒ ３：消した処理済み
+        this.list[i].sp = 1; // 黒くしとく
+      }
+    }
+  }
+  //=== 5:下に落とす ===
+  downall(){
+    if(this.wait > 0){
+      this.wait--;
+      return 0;
+    }
+    let flag = 1; // 何も変わってなければ１のまま
+    for(let i=0;i<30;i++){
+      if(this.list[i] == null || this.list[i].ee==3){ // ３：消した処理済み 
+        this.list[i] = null;
+        continue;
+      }
+      this.down(i,i+6);
+      if(!this.list[i]){flag = 0;}
+    }
+    this.wait = 3; // 落ちる感じ
+    return flag;
+  }
+  down(i,t){
+    //console.log("downX:"+[i,t]);
+    if(t >= 30){return;}
+    if(this.list[t] && this.list[t].ee!=3){
+      return;
+    }
+    // [入れ替え]
+    [this.list[t],this.list[i]] = [this.list[i],null];
+    //this.down(t,t+6);
+  }
+  //=== 6: setall ===
+  setall(){
+    if(this.wait > 0){
+      this.wait--;
+      return 0;
+    }
+    let flag = -1;
+    let n = 6;
+    for(let i=0;i<n;i++){
+      if(!this.list[i]){
+        this.createdrop(i);
+        flag = 1;
+      }
+    }
+    this.wait = 3;
+    return flag;
+  }
 }
 //================================================================================
 class drop{
@@ -178,20 +333,26 @@ class drop{
     this.cl = cl; // color
     this.ll = 50;
     this.sp = 0;
+    this.ee = 0;
   }
 
   draw(ctx,x,y){
     let [ll,cl] = [this.ll, this.cl];
-    if(this.ee){
-      this.drawdrop(ctx,"#FFFFFF",x*ll,y*ll,ll,ll);
+    if(this.ee==3){
+      this.drawdrop(ctx,6,x*ll,y*ll,ll,ll);
       let mg = 10;
+      this.drawdrop(ctx,cl,x*ll+mg,y*ll+mg,ll-(2*mg),ll-(2*mg));
+      return;
+    }
+    if(this.ee==2){
+      this.drawdrop(ctx,6,x*ll,y*ll,ll,ll);
+      let mg = 5;
       this.drawdrop(ctx,cl,x*ll+mg,y*ll+mg,ll-(2*mg),ll-(2*mg));
       return;
     }
     if(!this.sp){
       this.drawdrop(ctx,cl,x*ll,y*ll,ll,ll);
     }
-    //else{this.drawdrop(ctx,"#000000",x*ll,y*ll,ll,ll);}
   }
   drawsp(ctx){
     let [ll,cl] = [this.ll, this.cl];
@@ -199,11 +360,17 @@ class drop{
     this.drawdrop(ctx,cl,mx-ll/2,my-ll/2,ll,ll);
   }
   drawdrop(ctx,cl,x,y,w,h){
+    let color = ["#FF0000","#00FF00","#0000FF","#FFFF00","#800080","#FF00FF","#FFFFFF"];
     ctx.beginPath();
-    ctx.fillStyle = cl;
-    let r = (w+h-10)/2
-    ctx.arc( x+(w/2), y+(h/2), r/2, 0, Math.PI * 2, true);
-    ctx.fill();
+    ctx.fillStyle = color[cl];
+    if(cl == 5){
+      let mg = 5;
+      ctx.fillRect(x+mg,y+mg,w-2*mg,h-2*mg);
+    }else{
+      let r = (w+h-10)/2
+      ctx.arc( x+(w/2), y+(h/2), r/2, 0, Math.PI * 2, true);
+      ctx.fill();
+    }
   }
 }
 </script>
