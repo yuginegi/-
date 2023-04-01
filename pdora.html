@@ -62,7 +62,7 @@ function state2(dlist){
 // zzz
 function state3(dlist){
 }
-
+//================================================================================
 var mousepos=null;//[-1,-1];
 function mouseeventfunc(e){
   let [x,y] = [e.clientX,e.clientY];
@@ -146,65 +146,31 @@ class droplist{
   }
 //=== From here, it should reconsider better code ===
   eracesearch(){
-    // create 5x6 array
-    var arr = new Array(5);
-    for(var b = 0; b < 5; b++) {
-      arr[b] = new Array(6);
-      for(var a = 0; a < 6; a++) {
-        arr[b][a] = 0;
-      }
-    }
-    // set arr
-    for(let i=0;i<30;i++){
-      //let [ix,iy] = this.list[i].getP();
-      let ix = (i%6);
-      let iy = Math.floor(i/6);
-      arr[iy][ix] = i;
-    }
-    // arr search hori
-    for(var b = 0; b < 5; b++) {
-    for(var a = 0; a < 6; a++) {
-      {
-        let n = this.www(arr,b,a+1,arr[b][a],1);
-        if(n>=3){
-          for(let i=0;i<n;i++){
-            //console.log("www:"+[a+i,b]);
-            let ii = arr[b][a+i];
-            this.list[ii].ee = 1;
-          }
+    // arr search horizontal 
+    this.eracesearchcore(1);
+    // arr search vertical
+    this.eracesearchcore(6);
+  }
+  eracesearchcore(up){
+    for(var i=0;i<30;i++) {
+      let n = this.nnn(i,up,this.list[i].cl,1);
+      //console.log("nnn="+[i,n]);
+      if(n>=3){
+        for(let j=0;j<n;j++){
+          this.list[i+up*j].ee = 1;
         }
       }
-      {
-        let n = this.hhh(arr,b+1,a,arr[b][a],1);
-        if(n>=3){
-          for(let i=0;i<n;i++){
-            //console.log("hhh:"+[a,b+i]);
-            let ii = arr[b+i][a];
-            this.list[ii].ee = 1;
-          }
-        }
-      }
-    }}
-  }
-  www(arr,b,a,c,n){
-    if(a >= 6){return n;}
-    if(b >= 5){return n;}
-    let ii = arr[b][a];
-    if(this.list[c].cl == this.list[ii].cl){
-      return this.www(arr,b,a+1,c,n+1);
     }
-    return n;
   }
-  hhh(arr,b,a,c,n){
-    if(a >= 6){return n;}
-    if(b >= 5){return n;}
-    let ii = arr[b][a];
-    if(this.list[c].cl == this.list[ii].cl){
-      return this.hhh(arr,b+1,a,c,n+1);
+  nnn(i,up,c,n){ // up=1,6
+    //console.log("nnn:"+[i,up,c,n]);
+    if(up!=1 && i+up >= 30){return n;} // For vertical
+    if(up==1 && i%6 == 5){return n;} // For horizontal
+    if(c != this.list[i+up].cl){ // different color
+      return n;
     }
-    return n;
+    return this.nnn(i+up,up,c,n+1);
   }
-//=== To here, it should reconsider better code ===
 }
 //================================================================================
 class drop{
@@ -217,33 +183,29 @@ class drop{
   draw(ctx,x,y){
     let [ll,cl] = [this.ll, this.cl];
     if(this.ee){
-      drawdrop(ctx,"#FFFFFF",x*ll,y*ll,ll,ll);
+      this.drawdrop(ctx,"#FFFFFF",x*ll,y*ll,ll,ll);
       let mg = 10;
-      drawdrop(ctx,cl,x*ll+mg,y*ll+mg,ll-(2*mg),ll-(2*mg));
+      this.drawdrop(ctx,cl,x*ll+mg,y*ll+mg,ll-(2*mg),ll-(2*mg));
       return;
     }
-    if(this.sp){
-      drawdrop(ctx,"#000000",x*ll,y*ll,ll,ll);
-    }else{
-      drawdrop(ctx,cl,x*ll,y*ll,ll,ll);
+    if(!this.sp){
+      this.drawdrop(ctx,cl,x*ll,y*ll,ll,ll);
     }
+    //else{this.drawdrop(ctx,"#000000",x*ll,y*ll,ll,ll);}
   }
   drawsp(ctx){
     let [ll,cl] = [this.ll, this.cl];
     let [mx,my] = mousepos;
-    drawdrop(ctx,cl,mx-ll/2,my-ll/2,ll,ll);
+    this.drawdrop(ctx,cl,mx-ll/2,my-ll/2,ll,ll);
+  }
+  drawdrop(ctx,cl,x,y,w,h){
+    ctx.beginPath();
+    ctx.fillStyle = cl;
+    let r = (w+h-10)/2
+    ctx.arc( x+(w/2), y+(h/2), r/2, 0, Math.PI * 2, true);
+    ctx.fill();
   }
 }
-
-function drawdrop(ctx,cl,x,y,w,h){
-  ctx.beginPath();
-  ctx.fillStyle = cl;
-  //ctx.fillRect(x,y,w,h);
-  let r = (w+h-10)/2
-  ctx.arc( x+(w/2), y+(h/2), r/2, 0, Math.PI * 2, true);
-  ctx.fill();
-}
-
 </script>
 </body>
 </html>
