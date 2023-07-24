@@ -1,0 +1,93 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 64*16; // 1024
+var gYYY = 64*10; //  640
+//
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // 無限ループする
+  infiniteloop(ctx);
+}
+
+var gmm;
+function infiniteloop(ctx){
+  gmm = new mmm();
+  // 30FPSで無限ループするための「setInterval」
+  let fps = 30;
+  setInterval(mainloop, 1000/fps, ctx);
+}
+var tt = 0;
+function mainloop(ctx){
+  //時間経過
+  tt++;
+  // 背景
+  ctx.fillStyle = "#EEEEEE";
+  ctx.fillRect(0,0,gXXX,gYYY);
+  //
+  gmm.move(Math.floor(tt/10));
+  gmm.draw(ctx);
+}
+
+class mmm{
+  constructor(){
+    let ll = 32;
+    this.ll = ll;
+    this.map = this.init(ll);
+  }
+  init(ll){
+    let map = [];
+    for(let j=0;j<gYYY;j+=ll){
+      let mm = [];
+      let vj = Math.floor(j/ll);
+      for(let i=0;i<gXXX;i+=ll){
+        let vi = Math.floor(i/ll);
+        
+        let v = new ddd(vi,vj,ll,vi);
+        mm.push(v);
+      }
+      map.push(mm);  
+    }
+    return map;
+  }
+  move(tt){
+    this.tt = tt;
+  }
+  draw(ctx){
+    let tt = this.tt;
+    for(let yy of this.map){
+      //console.log(yy);
+      for(let mm of yy){
+        //console.log(mm);
+        mm.draw(ctx,tt)
+      }
+    }
+  }
+}
+
+class ddd{
+  constructor(x,y,ll,v){
+    this.arg = [x,y,ll,v];
+    this.v = v;
+    //console.log(this.arg)
+  }
+  draw(ctx,t){
+    let [x,y,ll,v] = this.arg;
+    if(t < v){return;}
+    ctx.fillStyle = ((x+y)%2==0) ? "#CCFFCC":"#CCCCFF";
+    ctx.fillRect(ll*x,ll*y,ll,ll);
+  }
+}
+
+</script>
+</body>
+</html>

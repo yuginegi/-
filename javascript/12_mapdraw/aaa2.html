@@ -1,0 +1,320 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html" charset="UTF-8">
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+var gXXX = 64*16; // 1024
+var gYYY = 64*10; //  640
+
+window.onload = function(){
+  // HTML上のCanvasに対して絵を描く準備。CTXを得る
+  let screenCanvas = document.getElementById('screen');
+  screenCanvas.width  = gXXX;
+  screenCanvas.height = gYYY;
+  let ctx = screenCanvas.getContext('2d');
+  // 無限ループする
+  infiniteloop(ctx);
+}
+
+var gmm;
+function infiniteloop(ctx){
+  gmm = new mmm();
+  // 30FPSで無限ループするための「setInterval」
+  let fps = 30;
+  setInterval(mainloop, 1000/fps, ctx);
+}
+var tt = 0;
+function mainloop(ctx){
+  //時間経過
+  tt++;
+  // 背景
+  ctx.fillStyle = "#EEEEEE";
+  ctx.fillRect(0,0,gXXX,gYYY);
+  // 前景
+  gmm.move(tt);
+  gmm.draw(ctx);
+  //console.log("mainloop");
+}
+
+class mmm{
+  constructor(){
+    let ll = 64/4;
+    this.ll = ll;
+    this.tt = 0;
+    this.map = this.init(ll);
+    this.init2();
+  }
+  init(ll){
+    console.log("init()");
+    let map = [];
+    for(let j=0;j<gYYY/ll;j++){
+      let mm = [];
+      for(let i=0;i<gXXX/ll;i++){
+        let v= new ddd(i,j,ll)
+        mm.push(v);
+      }
+      map.push(mm);
+    }
+    return map;
+  }
+  init2(){
+    let ll = this.ll;
+    console.log("init2()"+[(gXXX/ll),(gYYY/ll),(gXXX/ll)*(gYYY/ll)]);    
+    let max = (gXXX/ll)*(gYYY/ll);
+    let num1 = [...Array(max)].map((_, i) => i);
+    console.log(num1);
+    let num2 = utilShuffleArray(num1);
+    console.log(num2);
+    // ランダム配列生成 ここまで
+    this.num = num2;
+
+    // 初期壁
+    for(let i=0;i<gXXX/ll;i++){
+      this.map[0][i].wall = 2;
+    }
+    for(let i=0;i<gYYY/ll;i++){
+      this.map[i][0].wall = 2;
+    }
+  }
+
+  isWallX(x0,x1,y){
+    //console.log("isWallX: "+[x0,x1,y]);
+    if(y >= gYYY/this.ll){return 0;}
+    let v0 = this.map[y][x0].seta;
+    if(v0 && v0[0]==x1){return 1;}
+    if(x1 >= gXXX/this.ll){return 0;}
+    let v1 = this.map[y][x1].seta;
+    if(v1 && v1[0]==x0){return 1;}
+    return 0;
+  }
+  isWallY(y0,y1,x){
+    //console.log("isWallY: "+[y0,y1,x]);
+    if(x >= gXXX/this.ll){return 0;}
+    let v0 = this.map[y0][x].seta;
+    if(v0 && v0[1]==y1){return 1;}
+    if(y1 >= gYYY/this.ll){return 0;}
+    let v1 = this.map[y1][x].seta;
+    if(v1 && v1[1]==y0){return 1;}
+    return 0;
+  }
+  fillNext(x,y){
+    let ll = this.ll;
+    for(let i=0;i<4;i++){
+      let dr = i;
+      let [a,b] = [x,y];
+      let ww = 0
+      if(dr==0){//上
+        b--;
+        ww = this.isWallX(x,x+1,y);
+      }else if(dr==1){//下
+        b++;
+        ww = this.isWallX(x,x+1,y+1);
+      }else if(dr==2){//左
+        a--;
+        ww = this.isWallY(y,y+1,x);
+      }else if(dr==3){//右
+        a++;
+        ww = this.isWallY(y,y+1,x+1);
+      }
+      if(a<0||b<0||a>=gXXX/ll||b>=gYYY/ll){continue;}
+      if(this.map[b][a].ff == 1){continue;}
+      if(ww == 1){continue;}
+      this.map[b][a].ff = 1;
+      //console.log("push:"+[x,y,a,b]);
+      this.map[b][a].set2(x,y,this.step);
+      this.fnext.push(this.map[b][a]);
+    }
+  }
+
+  move(tt){
+    this.tt++;
+    if(this.nflag == 1){return;}
+    let ll = this.ll;
+    if(this.num.length==0){
+      let base = this.map[(gYYY)/ll-1][(gXXX)/ll-1];
+      if(base.ff!=1){
+        console.log("init move");
+        //this.map[0][0].ff = 1; 
+        base.ff = 1; 
+        this.farr = [base];
+        this.fnext = [];
+        return;
+      }
+      this.step = this.tt;
+      while(this.farr.length){
+        this.step++;
+        for(let cc of this.farr){
+          let [x,y] = cc.arg;
+          this.fillNext(x,y);
+        }
+        this.farr.length = 0;
+        this.farr = this.fnext.concat();
+        this.fnext.length = 0;
+      }
+      console.log("STEP:"+[this.tt,this.step]);
+      this.nflag = 1;
+      // 頑張って早く終わらせる
+      if(0){
+      let th = Math.floor((this.step-this.tt)/2);
+      for(let yy of this.map){
+        for(let mm of yy){
+          if(!mm.setb){continue;}
+          let v1 = mm.setb[2]-th;
+          mm.setb[2] = (v1>=0)? v1 : -v1;
+          mm.setb[2] += this.tt;
+        }
+      }}
+      return;
+    }
+
+    // 線を描く
+    let cnt = 0;
+    while(this.num.length>0){
+      //console.log("drawing");
+      let cc = this.num.shift();
+      if(!cc){continue;}
+      // cc から x,y 生成
+      let [x,y] = [cc%(gXXX/ll), Math.floor(cc/(gXXX/ll))]; 
+      let mm = this.map[y][x]; // Start
+      if(!mm || mm.wall!=0){continue;}
+      //console.log("x,y= "+[x,y]);
+      this.getNext(x,y);
+      //if(cnt++ > 10){return;}
+      // 1 をお片付け
+      for(let yy of this.map){
+        for(let mm of yy){
+          if(mm.wall==1){mm.wall=0;}
+        }
+      }
+    }
+    console.log("drawcomp");
+  }
+
+  getNext(x,y){
+    let ll = this.ll;
+    //console.log("getNext="+[x,y]);
+    // 壁に到達
+    if(y <= 0 || gYYY/ll <= y || x <= 0 || gXXX/ll <= x){return 1;}
+    if(this.map[y][x].wall == 2){return 1;}
+    // やり直し
+    if(this.map[y][x].wall == 1){return 0;}
+    // 探索続行
+    let r = Math.floor(Math.random() * (4));
+    this.map[y][x].wall = 1;
+    for(let i=0;i<4;i++){
+      let dr = (r+i)%4;
+      let [a,b] = [x,y];
+      if(dr==0){
+        b--;
+      }else if(dr==1){
+        b++;
+      }else if(dr==2){
+        a--;
+      }else if(dr==3){
+        a++;
+      }
+      let rtn = this.getNext(a,b);
+      if(rtn ==1){
+        this.map[y][x].set(a,b);
+        this.map[y][x].wall = 2;
+        return 1;
+      }
+    }
+    //console.log("backtrack");
+    //this.map[y][x].wall = 0;
+    return 0;
+  }
+
+  draw(ctx){
+    //console.log("draw..");
+    let tt = this.tt;
+    for(let yy of this.map){
+      //console.log(yy);
+      for(let mm of yy){
+        //console.log(mm);
+        //mm.draw(ctx,tt);
+        mm.draw2(ctx,tt);
+      }
+    }
+  }
+}
+
+class ddd{
+  constructor(x,y,ll){
+    this.arg = [x,y,ll];
+    this.wall = 0;
+    this.next = 0;
+  }
+  set(a,b){
+    this.seta = [a,b];
+  }
+  set2(a,b,t){
+    this.setb = [a,b,t];
+  }
+  draw(ctx){
+    if(this.wall==0){return;}
+    if(!this.seta){return;}
+    let [x,y,ll] = this.arg;
+    let [a,b] = this.seta;
+    ctx.strokeStyle = "#888888";
+    ctx.beginPath();
+    ctx.moveTo(x*ll, y*ll);
+    ctx.lineTo(a*ll, b*ll);
+    ctx.stroke();
+    ctx.closePath();
+  }
+  draw2(ctx,intt){
+    if(this.ff!=1){return;}
+    if(!this.setb){return;}
+    let [x,y,ll] = this.arg;
+    let [a,b,t] = this.setb;
+    let nn = 1;
+    ctx.strokeStyle = "#00FF00";
+    let [a1,b1] = [a*ll+ll/2, b*ll+ll/2];
+    let [x1,y1] = [x*ll+ll/2, y*ll+ll/2];
+    ctx.beginPath();
+    ctx.moveTo(a1,b1);
+    ctx.lineTo(x1,y1);
+    //ctx.lineTo(x2,y2);
+    ctx.stroke();
+    ctx.closePath();
+    let dt=10;
+    if(intt < t*nn || (t+dt)*nn < intt){return;}
+    let tt = intt - t*nn; 
+    let x2 = utilTimeRangeValue(tt,t*nn,(t+dt)*nn, a1, x1);
+    let y2 = utilTimeRangeValue(tt,t*nn,(t+dt)*nn, b1, y1);
+    let px = nn*10;
+    let pp = (tt%px)/px;
+    let pr = 0.30+0.20*Math.cos(2*Math.PI*pp);
+    let ml = ll*pr;
+    ctx.fillStyle = "#00FF00";
+    ctx.fillRect(x2-ml,y2-ml,2*ml,2*ml);
+  }
+}
+
+function utilTimeRangeValue(ttt,sss,fff, vs,ve){
+  if(ttt < sss){return vs;}
+  if(ttt < fff){return vs + (ve-vs)*(ttt-sss)/(fff-sss);}
+  return ve;
+}
+
+// https://zenn.dev/k_kazukiiiiii/articles/cf3256ef6cbd84
+const utilShuffleArray = (array) => {
+  const cloneArray = [...array]
+
+  for (let i = cloneArray.length - 1; i >= 0; i--) {
+    let rand = Math.floor(Math.random() * (i + 1))
+    // 配列の要素の順番を入れ替える
+    let tmpStorage = cloneArray[i]
+    cloneArray[i] = cloneArray[rand]
+    cloneArray[rand] = tmpStorage
+  }
+
+  return cloneArray
+}
+
+</script>
+</body>
+</html>
